@@ -61,24 +61,52 @@ frontend — the DB itself stays synthetic.
 
 ---
 
-## 3. Frontend enhancements still to be made (for a 100% live demo)
+## 3. Still to be done — all layers (for a 100% live demo)
 
-Priority order:
+### 3a. Frontend
+1. **Buyer lists** (`local-demand.ts` → `buyers[]`) — the last hardcoded list. Wire to a new
+   `GET /api/buyers?hub=` once the backend endpoint exists (see 3b).
+2. **Dashboard charts from live data**:
+   - Region bars / `revLocations` → aggregate `GET /api/debug/matches` by city (data already exists).
+   - Savings trend line → consume a new `GET /api/dashboard/trend` (see 3b).
+   - Agents table precision/escalation → consume a new agent-telemetry endpoint (see 3b).
+3. **Sustainability ESG badge** → compute from live metrics instead of a static "A+".
+4. **Copilot sample prompts (optional)** — route the 6 scripted prompts through the live LLM too
+   (free-text already is).
+5. **Cleanup** — remove dead `getDebugDashboard()` from `api.service.ts` (unused).
 
-1. **Backend running with Azure key** — start the API in the terminal where the Azure OpenAI
-   key/PAT is set, else live pages fall back to seed data.
-   - ⚠️ **Rotate the PAT** that was pasted in chat earlier.
-2. **Buyer marketplace data** — **no buyer endpoint exists**; add a synthetic `Buyers` table +
-   `GET /api/buyers?hub=` endpoint, then wire `local-demand.ts` buyer lists to it
-   (removes the last hardcoded list).
-3. **Dashboard charts from live data**:
-   - Region bars / `revLocations` → aggregate `GET /api/debug/matches` by city.
-   - Savings trend line → **no time-series endpoint exists**; add one (e.g. `GET /api/dashboard/trend`).
-   - Agents table precision/escalation → **no agent-telemetry endpoint exists**; expose it from the backend.
-4. **Sustainability ESG badge** → compute from live metrics instead of a static "A+".
-5. **Copilot sample prompts (optional)** — route the 6 scripted prompts through the live LLM too,
-   so every answer is generated (free-text already is).
-6. **Cleanup** — remove dead `getDebugDashboard()` from `api.service.ts` (unused).
+### 3b. Backend (missing endpoints / upgrades)
+1. **Buyers endpoint** — **no buyer endpoint exists.** Add `GET /api/buyers?hub=` served from a new
+   synthetic `Buyers` table (see 3c).
+2. **Dashboard trend endpoint** — **no time-series endpoint exists.** Add `GET /api/dashboard/trend`
+   for the savings/diversion line chart.
+3. **Agent-telemetry endpoint** — **no endpoint exposes agent precision/escalation.** Surface it
+   (e.g. from `AutoApprovalMetrics` / `AgentRecommendations`) so the dashboard table is real.
+4. **process-return FK failure** — the pipeline currently completes via fallback but throws on insert:
+   `FK_InventoryPool_ImageValidationResults` and `FK_MatchAgentResults_ReturnRequests` (see 3c).
+   Fix the insert ordering so parent rows exist before child rows.
+5. **Policy RAG upgrade (optional)** — `PolicyRetriever` is in-process **TF-IDF + cosine** over
+   `SyntheticPolicyCorpus` (deterministic, offline-friendly). For production, swap in an
+   embeddings-backed `IPolicyRetriever` and move the corpus out of code (see 3c).
+6. **Tests** — only `DecisionEngineTests`, `SavingsCalculatorServiceTests`, `RetailerPolicyServiceTests`,
+   `PolicyRetrieverTests` exist. Add coverage for MatchAgent, Dashboard aggregation, and the
+   process-return integration path.
+
+### 3c. SQL / database
+1. **FK / seed integrity** — `RelooptableCreation.sql`:
+   - `FK_InventoryPool_ImageValidationResults`: `InventoryPool.ReturnId → ImageValidationResults(Id)`
+     — verify this relationship is intended (it reads oddly) and that seed rows satisfy it.
+   - `FK_MatchAgentResults_ReturnRequests`: every `MatchAgentResults.ReturnRequestId` must exist in
+     `ReturnRequests`. Align the synthetic seed so process-return inserts don't violate these FKs.
+2. **Buyers table + seed** — add a synthetic `Buyers` table (hub, zone, distance, delivery, score)
+   to back the buyers endpoint.
+3. **Policy corpus in DB (optional)** — move `SyntheticPolicyCorpus` into a `Policies` table so RAG
+   reads governing policies from the database instead of code.
+
+### 3d. Infra / demo run
+1. **Run backend with the Azure key** — start the API in the terminal where the Azure OpenAI key is
+   set (prod `appsettings.json` → Azure `gpt-5-mini`), else live pages fall back to seed data.
+2. ⚠️ **Rotate the PAT** that was pasted in chat earlier.
 
 ---
 
