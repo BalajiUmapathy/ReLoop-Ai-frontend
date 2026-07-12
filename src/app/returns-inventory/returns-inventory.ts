@@ -1,0 +1,85 @@
+import { Component, computed, signal, inject, OnInit } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { DecimalPipe } from '@angular/common';
+import { catchError, of } from 'rxjs';
+import { ReturnService } from '../return';
+import { ApiService, FeedbackSummary } from '../core/api.service';
+
+@Component({
+  selector: 'app-returns-inventory',
+  imports: [FormsModule, DecimalPipe],
+  templateUrl: './returns-inventory.html',
+  styleUrl: './returns-inventory.css',
+})
+export class ReturnsInventoryComponent implements OnInit {
+  private svc = inject(ReturnService);
+  private api = inject(ApiService);
+
+  live = this.svc.live;
+
+  // Human-in-the-loop feedback
+  feedback = signal<FeedbackSummary | null>(null);
+  reviewed = signal<Record<string, 'Accept' | 'Modify' | 'Reject'>>({});
+
+  ngOnInit(): void {
+    this.svc.hydrateFromBackend();
+    this.loadFeedback();
+  }
+
+  private loadFeedback() {
+    this.api
+      .getFeedbackSummary()
+      .pipe(catchError(() => of(null)))
+      .subscribe((s) => this.feedback.set(s));
+  }
+
+  /** Captures an associate Accept / Modify / Reject decision and feeds the learning loop. */
+  sendFeedback(id: string, action: 'Accept' | 'Modify' | 'Reject', product: string) {
+    this.reviewed.update((m) => ({ ...m, [id]: action }));
+    this.api
+      .submitFeedback({
+        returnRequestId: null,
+        action,
+        correctedField: action === 'Modify' ? 'Recommendation' : null,
+        associateId: 'assoc-console',
+        notes: `${action} on ${product} (${id})`,
+      })
+      .pipe(catchError(() => of(null)))
+      .subscribe(() => this.loadFeedback());
+  }
+
+  search = signal('');
+  statusFilter = signal('All');
+  categoryFilter = signal('All');
+  conditionFilter = signal('All');
+
+  statuses = ['All', 'Eligible', 'Matched', 'Pending', 'Sold Locally', 'Returned', 'At Risk', 'Escalated'];
+  categories = ['All', 'Electronics', 'Apparel', 'Home', 'Sports', 'Books'];
+  conditions = ['All', 'Excellent', 'Good', 'Fair', 'Poor'];
+
+  items = computed(() => {
+    return this.svc.getReturns()().filter(r => {
+      const q = this.search().toLowerCase();
+      const matchSearch = !q || r.product.toLowerCase().includes(q) || r.id.toLowerCase().includes(q);
+      const matchStatus = this.statusFilter() === 'All' || r.status === this.statusFilter();
+      const matchCat = this.categoryFilter() === 'All' || r.category === this.categoryFilter();
+      const matchCond = this.conditionFilter() === 'All' || r.condition === this.conditionFilter();
+      return matchSearch && matchStatus && matchCat && matchCond;
+    });
+  });
+
+  holdClass(days: number) {
+    if (days >= 10) return 'hold-red';
+    if (days >= 6) return 'hold-orange';
+    if (days >= 3) return 'hold-yellow';
+    return 'hold-green';
+  }
+
+  statusClass(s: string) {
+    return ({ 'Eligible': 'st-eligible', 'Matched': 'st-matched', 'At Risk': 'st-risk', 'Escalated': 'st-escalated', 'Pending': 'st-pending' } as Record<string,string>)[s] ?? 'st-pending';
+  }
+
+  conditionClass(c: string) {
+    return ({ 'Excellent': 'cond-excellent', 'Good': 'cond-good', 'Fair': 'cond-fair', 'Poor': 'cond-poor' } as Record<string,string>)[c] ?? '';
+  }
+}

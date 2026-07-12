@@ -1,0 +1,105 @@
+<main class="main">
+  <div class="inv-header">
+    <div>
+      <h1 class="page-title">Returns Inventory</h1>
+      <p class="page-sub">{{ items().length }} items &middot; Smart AI eligibility scoring active</p>
+    </div>
+    <div class="header-actions">
+      <span class="live-badge">&#9679; Live Sync</span>
+      <button class="btn-export">Export CSV</button>
+    </div>
+  </div>
+
+  <!-- AI decision quality (human-in-the-loop learning signal) -->
+  @if (feedback(); as f) {
+    <div class="fb-strip">
+      <div class="fb-cell"><span class="fb-val">{{ f.acceptRate | number:'1.0-0' }}%</span><span class="fb-lbl">AI accept rate</span></div>
+      <div class="fb-cell"><span class="fb-val">{{ f.total }}</span><span class="fb-lbl">reviews logged</span></div>
+      <div class="fb-cell"><span class="fb-val green">{{ f.accepted }}</span><span class="fb-lbl">accepted</span></div>
+      <div class="fb-cell"><span class="fb-val amber">{{ f.modified }}</span><span class="fb-lbl">modified</span></div>
+      <div class="fb-cell"><span class="fb-val red">{{ f.rejected }}</span><span class="fb-lbl">rejected</span></div>
+      @if (f.autoApproval?.stpRate != null) {
+        <div class="fb-cell"><span class="fb-val">{{ f.autoApproval.stpRate | number:'1.0-0' }}%</span><span class="fb-lbl">auto-approved (STP)</span></div>
+      }
+    </div>
+  }
+
+  <!-- Filters -->
+  <div class="filters">
+    <input class="search-input" [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Search product, return ID..." />
+    <div class="filter-group">
+      <span class="filter-label">Status:</span>
+      @for (s of statuses; track s) {
+        <button class="filter-btn" [class.active]="statusFilter() === s" (click)="statusFilter.set(s)">{{ s }}</button>
+      }
+    </div>
+  </div>
+  <div class="filter-row">
+    <span class="filter-label">Category:</span>
+    @for (c of categories; track c) {
+      <button class="filter-btn" [class.active]="categoryFilter() === c" (click)="categoryFilter.set(c)">{{ c }}</button>
+    }
+    &nbsp;&nbsp;
+    <span class="filter-label">Condition:</span>
+    @for (c of conditions; track c) {
+      <button class="filter-btn" [class.active]="conditionFilter() === c" (click)="conditionFilter.set(c)">{{ c }}</button>
+    }
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table class="inv-table">
+      <thead>
+        <tr>
+          <th>RETURN ID</th><th>PRODUCT</th><th>CATEGORY</th><th>LOCATION</th>
+          <th>HUB</th><th>CONDITION</th><th>RETURN DATE</th><th>HOLD DAYS &#8595;</th>
+          <th>DEMAND SCORE</th><th>RISK SCORE</th><th>AVG MARKDOWN</th>
+          <th>MARGIN RETAINED</th><th>STATUS</th><th>AI REVIEW</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (r of items(); track r.id) {
+          <tr>
+            <td class="id-cell">{{ r.id }}</td>
+            <td class="product-cell">{{ r.product }}</td>
+            <td>{{ r.category }}</td>
+            <td>{{ r.locationHub }}</td>
+            <td>{{ r.subHub }}</td>
+            <td><span class="cond-badge" [class]="conditionClass(r.condition)">{{ r.condition }}</span></td>
+            <td>{{ r.returnDate }}</td>
+            <td><span class="hold-badge" [class]="holdClass(r.holdDays)">Day {{ r.holdDays }}</span></td>
+            <td>
+              <div class="score-cell">
+                <div class="mini-bar"><div class="mini-fill green" [style.width.%]="r.demandScore"></div></div>
+                <span>{{ r.demandScore }}</span>
+              </div>
+            </td>
+            <td>
+              <div class="score-cell">
+                <div class="mini-bar"><div class="mini-fill red" [style.width.%]="r.riskScore"></div></div>
+                <span>{{ r.riskScore }}</span>
+              </div>
+            </td>
+            <td class="markdown-cell">{{ r.avgMarkdown }}</td>
+            <td class="margin-cell">{{ r.marginRetained }}</td>
+            <td><span class="status-badge" [class]="statusClass(r.status)">{{ r.status }}</span></td>
+            <td class="review-cell">
+              @if (reviewed()[r.id]; as done) {
+                <span class="review-done"
+                  [class.acc]="done === 'Accept'" [class.mod]="done === 'Modify'" [class.rej]="done === 'Reject'">
+                  &#10003; {{ done }}
+                </span>
+              } @else {
+                <div class="review-actions">
+                  <button class="rv-btn acc" title="Accept AI decision" (click)="sendFeedback(r.id, 'Accept', r.product)">&#10003;</button>
+                  <button class="rv-btn mod" title="Modify AI decision" (click)="sendFeedback(r.id, 'Modify', r.product)">&#9998;</button>
+                  <button class="rv-btn rej" title="Reject AI decision" (click)="sendFeedback(r.id, 'Reject', r.product)">&#10007;</button>
+                </div>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</main>

@@ -1,0 +1,158 @@
+<main class="main">
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Retailer Portal</h1>
+      <p class="page-sub">Retailer-specific return analytics, policies, and AI fix tickets
+        @if (live()) { <span class="live-dot">● LIVE</span> }
+      </p>
+    </div>
+    <div class="retailer-tabs">
+      @for (r of retailers(); track r) {
+        <button class="retailer-tab" [class.active]="activeRetailer() === r" (click)="activeRetailer.set(r)">
+          {{ data()[r].icon }} {{ r }}
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Retailer Card -->
+  <div class="retailer-card">
+    <div class="retailer-info">
+      <div class="retailer-logo">{{ current().icon }}</div>
+      <div>
+        <div class="retailer-name">{{ current().name }} Returns Overview</div>
+        <div class="retailer-tagline">{{ current().tagline }}</div>
+      </div>
+    </div>
+    <span class="verified-badge">&#9679; Verified Partner</span>
+  </div>
+
+  <!-- Metrics Grid -->
+  <div class="metrics-grid">
+    <div class="metric-card border-dark">
+      <div class="mc-top"><span class="mc-label">TOTAL RETURNS THIS MONTH</span><span>📦</span></div>
+      <div class="mc-value dark">{{ current().totalReturns.toLocaleString() }}</div>
+    </div>
+    <div class="metric-card border-green">
+      <div class="mc-top"><span class="mc-label">ITEMS RESOLD LOCALLY</span><span>✅</span></div>
+      <div class="mc-value green">{{ current().itemsResold.toLocaleString() }}</div>
+    </div>
+    <div class="metric-card border-yellow">
+      <div class="mc-top"><span class="mc-label">REVENUE RECOVERED</span><span>💰</span></div>
+      <div class="mc-value yellow">{{ current().revenueRecovered }}</div>
+    </div>
+    <div class="metric-card border-blue">
+      <div class="mc-top"><span class="mc-label">LOCAL RESALE RATE</span><span>📊</span></div>
+      <div class="mc-value blue">{{ current().returnRate }}</div>
+    </div>
+    <div class="metric-card border-green">
+      <div class="mc-top"><span class="mc-label">CO₂ REDUCED</span><span>🌿</span></div>
+      <div class="mc-value green">{{ current().co2Reduced }}</div>
+    </div>
+    <div class="metric-card border-dark">
+      <div class="mc-top"><span class="mc-label">DISTANCE SAVED</span><span>🗺️</span></div>
+      <div class="mc-value dark">{{ current().milesSaved }}</div>
+    </div>
+  </div>
+
+  <!-- Policies -->
+  <div class="section-card">
+    <div class="section-header">
+      <div class="section-title">Your Return Policies</div>
+      <div class="section-sub">Active resale policies governing AI eligibility decisions</div>
+    </div>
+    <table class="policy-table">
+      <thead><tr><th>CATEGORY</th><th>CONDITION FLOOR</th><th>RESALE ALLOWED</th><th>POLICY ID</th></tr></thead>
+      <tbody>
+        @for (p of current().policies; track p.policyId) {
+          <tr>
+            <td>{{ p.category }}</td>
+            <td><span class="cond-badge" [class]="p.conditionClass">{{ p.condition }}</span></td>
+            <td class="yes-cell">&#10003; Yes</td>
+            <td><span class="policy-id">{{ p.policyId }}</span></td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Fix Tickets -->
+  <div class="section-card">
+    <div class="section-header">
+      <div class="section-title">Root Cause Fix Tickets</div>
+      <div class="section-sub">AI-identified systemic return causes — act to reduce future volume</div>
+    </div>
+    <table class="ticket-table">
+      <thead><tr><th>AI IDENTIFIED CAUSE</th><th>SKU GROUP</th><th>SHARE OF RETURNS</th><th>PROJECTED ANNUAL SAVINGS</th><th>STATUS</th><th>ACTION</th></tr></thead>
+      <tbody>
+        @for (t of current().tickets; track t.sku) {
+          <tr>
+            <td class="cause-cell">{{ t.cause }}</td>
+            <td class="sku-cell">{{ t.sku }}</td>
+            <td class="share-cell">{{ t.share }}</td>
+            <td class="savings-cell">{{ t.savings }}</td>
+            <td><span class="status-badge" [class]="t.statusClass">{{ t.status }}</span></td>
+            <td><button class="review-btn">Review Ticket</button></td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Chart + Top SKUs -->
+  <div class="bottom-grid">
+    <div class="section-card">
+      <div class="section-title" style="margin-bottom:16px">Return Volume Trend — 6 Month</div>
+      <svg [attr.width]="chartPath().w" [attr.height]="chartPath().h" style="width:100%;height:auto;overflow:visible">
+        <!-- Y grid lines -->
+        @for (yl of yLabels(); track yl.val) {
+          <line [attr.x1]="chartPath().pad" [attr.x2]="chartPath().w - chartPath().pad" [attr.y1]="yl.y" [attr.y2]="yl.y" stroke="#F3F4F6" stroke-width="1"/>
+          <text [attr.x]="chartPath().pad - 6" [attr.y]="yl.y + 4" text-anchor="end" font-size="10" fill="#9CA3AF">{{ yl.val }}</text>
+        }
+        <!-- Area fill -->
+        <path [attr.d]="chartPath().area" fill="rgba(26,13,6,0.05)" />
+        <!-- Line -->
+        <path [attr.d]="chartPath().path" fill="none" stroke="#1a0d06" stroke-width="2" stroke-linejoin="round" />
+        <!-- Dots -->
+        @for (pt of chartPath().points; track pt.x) {
+          <circle [attr.cx]="pt.x" [attr.cy]="pt.y" r="4" fill="#1a0d06" />
+        }
+        <!-- X labels -->
+        @for (lbl of xLabels(); track lbl; let i = $index) {
+          <text [attr.x]="chartPath().pad + (i / (xLabels().length - 1)) * (chartPath().w - chartPath().pad * 2)" [attr.y]="chartPath().h - 4" text-anchor="middle" font-size="10" fill="#9CA3AF">{{ lbl }}</text>
+        }
+      </svg>
+    </div>
+    <div class="section-card">
+      <div class="section-title" style="margin-bottom:16px">Top Returned SKUs</div>
+      <table class="sku-table">
+        <thead><tr><th>PRODUCT</th><th>RETURN REASON</th><th>VOLUME</th><th>RECOMMENDED FIX</th></tr></thead>
+        <tbody>
+          @for (s of current().topSkus; track s.product) {
+            <tr>
+              <td class="sku-product">{{ s.product }}</td>
+              <td class="sku-reason">{{ s.reason }}</td>
+              <td class="sku-volume">{{ s.volume }}</td>
+              <td><a class="sku-fix">{{ s.fix }}</a></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ESG Impact -->
+  <div class="esg-card">
+    <div class="esg-title">🌿 ESG Impact — {{ current().name }}</div>
+    <div class="esg-grid">
+      @for (e of current().esg; track e.label) {
+        <div class="esg-item">
+          <div class="esg-icon">{{ e.icon }}</div>
+          <div class="esg-label">{{ e.label }}</div>
+          <div class="esg-value" [style.color]="e.color">{{ e.value }}</div>
+        </div>
+      }
+    </div>
+  </div>
+</main>

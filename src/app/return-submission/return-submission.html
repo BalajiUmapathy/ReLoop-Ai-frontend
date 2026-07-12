@@ -1,0 +1,280 @@
+<main class="main">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Submit New Return</h1>
+      <p class="page-sub">AI eligibility preview updates in real time as you fill the form</p>
+    </div>
+    <span class="ai-live-badge">&#9679; AI Scoring Live</span>
+  </div>
+
+  <div class="form-layout">
+    <!-- Form -->
+    <div class="form-card">
+      <div class="field-group">
+        <label class="field-label">RETURN ID <span class="auto-tag">(AUTO-GENERATED)</span></label>
+        <input class="field-input readonly" [value]="returnId" readonly />
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">PRODUCT NAME <span class="req">*</span></label>
+        <input class="field-input" [ngModel]="product()" (ngModelChange)="product.set($event)" placeholder="e.g. Wireless Earbuds (Pro)" />
+      </div>
+
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label">CATEGORY</label>
+          <select class="field-input" [ngModel]="category()" (ngModelChange)="category.set($event)">
+            @for (c of categories; track c) { <option>{{ c }}</option> }
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label">CONDITION</label>
+          <select class="field-input" [ngModel]="condition()" (ngModelChange)="condition.set($event)">
+            @for (c of conditions; track c) { <option>{{ c }}</option> }
+          </select>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label">LOCATION HUB</label>
+          <select class="field-input" [ngModel]="locationHub()" (ngModelChange)="locationHub.set($event)">
+            @for (h of hubs; track h) { <option>{{ h }}</option> }
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label">SUB HUB</label>
+          <input class="field-input" [ngModel]="subHub()" (ngModelChange)="subHub.set($event)" [placeholder]="locationHub() + ' Central'" />
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label">PICKUP DATE <span class="req">*</span></label>
+          <input class="field-input" type="date" [ngModel]="pickupDate()" (ngModelChange)="pickupDate.set($event)" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">RETAILER <span class="req">*</span></label>
+          <input class="field-input" [ngModel]="retailer()" (ngModelChange)="retailer.set($event)" placeholder="e.g. SportsHub, TechBrand" />
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">RETURN REASON</label>
+        <select class="field-input" [ngModel]="returnReason()" (ngModelChange)="returnReason.set($event)">
+          @for (r of reasons; track r) { <option>{{ r }}</option> }
+        </select>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">UPLOAD PRODUCT PHOTOS</label>
+        <div class="upload-zone" [class.drag-over]="dragOver()"
+          (dragover)="$event.preventDefault(); dragOver.set(true)"
+          (dragleave)="dragOver.set(false)"
+          (drop)="dragOver.set(false)">
+          <span class="upload-icon">&#128247;</span>
+          <p class="upload-text">Drag &amp; drop photos here</p>
+          <p class="upload-sub">or click to browse &middot; JPG, PNG &middot; Max 6 images</p>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn-submit" (click)="onSubmit()" [disabled]="!product() || !pickupDate() || !retailer()">Submit Return</button>
+        <button class="btn-draft">Save Draft</button>
+      </div>
+    </div>
+
+    <!-- AI Preview Panel -->
+    <div class="ai-panel">
+      <div class="ai-panel-header">
+        <div class="ai-avatar">&#129302;</div>
+        <div>
+          <div class="ai-title">LIVE AI ELIGIBILITY PREVIEW</div>
+          <div class="ai-dot"></div>
+        </div>
+      </div>
+
+      @if (hasData()) {
+        <div class="eligibility-badge" [class.eligible]="eligible()" [class.ineligible]="!eligible()">
+          <span>{{ eligible() ? '&#10003;' : '&#8855;' }}</span>
+          <div>
+            <div class="elig-title">{{ eligible() ? 'Eligible for Local Resale' : 'Not Eligible' }}</div>
+            <div class="elig-sub">AI Determination</div>
+          </div>
+        </div>
+
+        <div class="scores">
+          @for (s of [
+            {label: 'Condition Score', value: conditionScore(), color: '#22C55E'},
+            {label: 'Policy Validation', value: 70, color: '#6366F1'},
+            {label: 'Estimated Demand Score', value: demandScore(), color: '#F5A623'},
+            {label: 'Predicted Resale Probability', value: resaleProbability(), color: '#1a0d06'},
+            {label: 'Confidence Score', value: confidenceScore(), color: '#22C55E'}
+          ]; track s.label) {
+            <div class="score-row">
+              <div class="score-top">
+                <span class="score-label">{{ s.label }}</span>
+                <span class="score-pct" [style.color]="s.color">{{ s.value }}%</span>
+              </div>
+              <div class="score-track"><div class="score-fill" [style.width.%]="s.value" [style.background]="s.color"></div></div>
+            </div>
+          }
+        </div>
+
+        <div class="sale-window">
+          <span class="sw-label">Expected Sale Window</span>
+          <span class="sw-value">{{ saleWindow() }}</span>
+        </div>
+
+        <button class="btn-live-match" (click)="runLiveMatch()" [disabled]="analyzing()">
+          {{ analyzing() ? '⏳ Running AI Match Agent…' : '🤖 Run Live AI Match Agent' }}
+        </button>
+
+        @if (liveError()) {
+          <div class="live-error">{{ liveError() }}</div>
+        }
+
+        @if (liveResult(); as r) {
+          <div class="live-result">
+            <div class="live-head">
+              <span class="live-tag">● LIVE AGENT VERDICT</span>
+              <span class="live-score">{{ r.matchScore }}/100</span>
+            </div>
+            <div class="live-reco">{{ r.recommendation }}</div>
+            <p class="live-explain">{{ r.explanation }}</p>
+
+            <div class="live-metrics">
+              <div class="lm"><span class="lm-label">Confidence</span><span class="lm-val">{{ pct(r.confidence) }}%</span></div>
+              <div class="lm"><span class="lm-label">Channel</span><span class="lm-val">{{ r.channel || '—' }}</span></div>
+              <div class="lm"><span class="lm-label">Days to Sell</span><span class="lm-val">{{ r.expectedDaysToSell }}d</span></div>
+              <div class="lm"><span class="lm-label">Cost Saved</span><span class="lm-val">₹{{ r.costSaved | number:'1.0-0' }}</span></div>
+              <div class="lm"><span class="lm-label">Distance Saved</span><span class="lm-val">{{ r.distanceSavedKm | number:'1.0-0' }} km</span></div>
+              <div class="lm"><span class="lm-label">CO₂ Saved</span><span class="lm-val">{{ r.co2Saved | number:'1.1-1' }} kg</span></div>
+            </div>
+
+            @if (r.matchDetails.length) {
+              <div class="live-breakdown">
+                <div class="lb-title">SCORING BREAKDOWN</div>
+                @for (d of r.matchDetails; track d.factor) {
+                  <div class="lb-row">
+                    <span class="lb-factor">{{ d.factor }}</span>
+                    <span class="lb-points" [class.pos]="d.points >= 0" [class.neg]="d.points < 0">{{ d.points >= 0 ? '+' : '' }}{{ d.points }}</span>
+                    <span class="lb-reason">{{ d.reason }}</span>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+
+        <button class="btn-pipeline" (click)="runFullPipeline()" [disabled]="pipelineRunning() || !product()">
+          {{ pipelineRunning() ? '⏳ Running full AI pipeline…' : '⚡ Run Full AI Decision Pipeline' }}
+        </button>
+        @if (packageTracking()) {
+          <div class="pipeline-link">Linked to live package <strong>{{ packageTracking() }}</strong></div>
+        }
+        @if (pipelineError()) {
+          <div class="live-error">{{ pipelineError() }}</div>
+        }
+
+        @if (pipeline(); as p) {
+          <div class="pipeline-result">
+            <div class="pl-head">
+              <span class="pl-tag">● FULL PIPELINE · 7 AGENTS</span>
+              @if (p.autoApproval; as a) {
+                <span class="pl-route"
+                  [class.approve]="a.route === 'AUTO_APPROVE'"
+                  [class.review]="a.route === 'HUMAN_REVIEW'"
+                  [class.escalate]="a.route === 'ESCALATE'">{{ a.route.replace('_', ' ') }}</span>
+              }
+            </div>
+
+            <!-- Stepper -->
+            <div class="pl-steps">
+              @if (p.imageValidation; as iv) {
+                <div class="pl-step" [class.ok]="iv.eligible" [class.bad]="!iv.eligible">
+                  <span class="pls-num">1</span>
+                  <span class="pls-name">Image · {{ iv.condition }}</span>
+                  <span class="pls-meta">{{ pct(iv.confidence) }}%</span>
+                </div>
+              }
+              @if (p.policyCompliance; as pc) {
+                <div class="pl-step" [class.ok]="pc.resaleAllowed" [class.bad]="!pc.resaleAllowed">
+                  <span class="pls-num">2</span>
+                  <span class="pls-name">Policy · {{ pc.resaleAllowed ? 'Resale allowed' : 'Restricted' }}</span>
+                  <span class="pls-meta">{{ pc.policyRef }}</span>
+                </div>
+              }
+              @if (p.hyperlocalMatch; as m) {
+                <div class="pl-step" [class.ok]="m.matchScore >= 70">
+                  <span class="pls-num">3</span>
+                  <span class="pls-name">Match · {{ m.channel || m.recommendation }}</span>
+                  <span class="pls-meta">{{ m.matchScore }}/100</span>
+                </div>
+              }
+              @if (p.diversion; as d) {
+                <div class="pl-step ok">
+                  <span class="pls-num">4</span>
+                  <span class="pls-name">Diversion · {{ d.action.replace('_', ' ') }}</span>
+                  <span class="pls-meta">{{ d.searchRadiusKm | number:'1.0-0' }} km</span>
+                </div>
+              }
+              @if (p.decisionConfidence; as dc) {
+                <div class="pl-step" [class.ok]="!dc.shouldEscalate" [class.bad]="dc.shouldEscalate">
+                  <span class="pls-num">5</span>
+                  <span class="pls-name">Confidence · {{ dc.band }}</span>
+                  <span class="pls-meta">{{ pct(dc.score) }}%</span>
+                </div>
+              }
+            </div>
+
+            <!-- Revenue -->
+            @if (p.revenueOpportunity; as rev) {
+              <div class="pl-revenue">
+                <div class="plr-title">NET VALUE CAPTURED</div>
+                <div class="plr-total">₹{{ rev.totalNetValue | number:'1.0-0' }}</div>
+                <div class="plr-grid">
+                  <div><span>Freight avoided</span><strong>₹{{ rev.freightAvoided | number:'1.0-0' }}</strong></div>
+                  <div><span>Resale margin</span><strong>₹{{ rev.resaleMargin | number:'1.0-0' }}</strong></div>
+                  <div><span>Service fee</span><strong>₹{{ rev.resaleServiceFee | number:'1.0-0' }}</strong></div>
+                  <div><span>CO₂ value</span><strong>₹{{ rev.co2ValueUsd | number:'1.0-0' }}</strong></div>
+                </div>
+              </div>
+            }
+
+            <!-- Savings -->
+            <div class="pl-savings">
+              <div class="pls-item"><span>{{ p.savings.distanceSavedKm | number:'1.0-0' }} km</span><small>distance saved</small></div>
+              <div class="pls-item"><span>{{ p.savings.co2SavedKg | number:'1.1-1' }} kg</span><small>CO₂ saved</small></div>
+              <div class="pls-item"><span>₹{{ p.savings.costSaved | number:'1.0-0' }}</span><small>cost saved</small></div>
+            </div>
+
+            <!-- Auto-approval reason -->
+            @if (p.autoApproval; as a) {
+              <p class="pl-reason">{{ a.reason }}</p>
+            }
+
+            <!-- Citations (grounded evidence) -->
+            @if (p.citations.length) {
+              <div class="pl-citations">
+                <div class="plc-title">GROUNDED EVIDENCE</div>
+                @for (c of p.citations; track c.refId) {
+                  <div class="plc-row">
+                    <span class="plc-src">{{ c.sourceType }}</span>
+                    <span class="plc-ref">{{ c.refId }}</span>
+                    <span class="plc-snip">{{ c.snippet }}</span>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+      } @else {
+        <div class="ai-placeholder">
+          <p>&#128269; <strong>Dynamic AI Explanation</strong></p>
+          <p>Enter product details to generate AI analysis.</p>
+        </div>
+      }
+    </div>
+  </div>
+</main>

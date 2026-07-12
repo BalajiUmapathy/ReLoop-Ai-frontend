@@ -1,0 +1,54 @@
+.main { flex: 1; overflow-y: auto; background: #F3F4F6; padding: 22px 28px; display: flex; flex-direction: column; gap: 14px; scrollbar-width: none; min-height: 0; }
+.main::-webkit-scrollbar { display: none; }
+.page-header { display: flex; justify-content: space-between; align-items: flex-start; }
+.page-title { font-size: 22px; font-weight: 700; color: #111827; margin: 0 0 3px 0; }
+.page-sub { font-size: 12.5px; color: #6B7280; margin: 0; }
+.esg-badge { background: #D1FAE5; border: 1px solid #6EE7B7; color: #065F46; font-size: 12px; font-weight: 600; padding: 7px 16px; border-radius: 20px; white-space: nowrap; }
+.section-label { font-size: 10.5px; font-weight: 700; color: #9CA3AF; letter-spacing: 0.8px; margin-bottom: -6px; }
+
+.cards-grid3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+.cards-grid4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+.kpi-card { background: #fff; border-radius: 10px; padding: 16px; border-top: 3px solid; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+.kpi-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.kpi-icon { font-size: 16px; }
+.kpi-label { font-size: 9.5px; font-weight: 600; color: #9CA3AF; letter-spacing: 0.5px; text-transform: uppercase; }
+.kpi-val { font-size: 24px; font-weight: 800; color: #111827; margin-bottom: 4px; }
+.kpi-val.green { color: #16A34A; }
+.kpi-val.amber { color: #D97706; }
+.kpi-val.blue { color: #4F46E5; }
+.kpi-val.dark { color: #111827; }
+.kpi-desc { font-size: 11.5px; color: #9CA3AF; }
+
+.charts-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+.chart-card { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+.chart-title { font-size: 13px; font-weight: 600; color: #111827; margin-bottom: 10px; }
+.chart-svg { width: 100%; height: 160px; overflow: visible; }
+.donut-wrap { display: flex; justify-content: center; margin: 4px 0; }
+.donut-svg { width: 120px; height: 120px; transform: rotate(-90deg); }
+.donut-legend { display: flex; flex-wrap: wrap; gap: 6px 12px; justify-content: center; margin-top: 8px; }
+.dl { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #6B7280; }
+.dd { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+
+.hub-lb { display: flex; flex-direction: column; gap: 10px; }
+.hlb-row { display: flex; align-items: center; gap: 8px; }
+.hlb-rank { font-size: 11px; font-weight: 700; color: #6B7280; width: 20px; flex-shrink: 0; }
+.hlb-mid { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+.hlb-name { font-size: 12px; color: #374151; font-weight: 500; }
+.hlb-track { height: 5px; background: #F3F4F6; border-radius: 3px; overflow: hidden; }
+.hlb-fill { height: 100%; background: #22C55E; border-radius: 3px; }
+.hlb-co2 { font-size: 10.5px; color: #16A34A; white-space: nowrap; }
+.hlb-score { font-size: 12px; font-weight: 700; color: #111827; width: 24px; text-align: right; }
+
+.agent-card { background: #fff; border-radius: 12px; padding: 16px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+.agent-header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.agent-av { width: 36px; height: 36px; background: #1a0d06; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+.agent-title { font-size: 14px; font-weight: 600; color: #111827; }
+.agent-sub { font-size: 11.5px; color: #9CA3AF; }
+
+.summary-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.summary-dark { background: linear-gradient(135deg, #2d1408, #1a0d06); border-radius: 12px; padding: 22px 24px; }
+.summary-green { background: linear-gradient(135deg, #16A34A, #059669); border-radius: 12px; padding: 22px 24px; }
+.sum-sup { font-size: 9.5px; font-weight: 700; color: #F5A623; letter-spacing: 0.8px; margin-bottom: 4px; }
+.sum-title { font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 10px; }
+.sum-text { font-size: 12.5px; color: rgba(255,255,255,0.85); line-height: 1.6; margin: 0; }
+.sum-highlight { color: #F5A623; font-weight: 600; }
