@@ -114,6 +114,7 @@ export interface ReturnProcessingRequest {
   location: string;
   imageBase64?: string | null;
   additionalContext?: string | null;
+  condition?: string | null;
   holdingDaysCompleted?: number | null;
   pickupDate?: string | null;
   basePrice?: number | null;
@@ -186,7 +187,7 @@ export interface RevenueOpportunity {
   freightAvoided: number;
   resaleMargin: number;
   resaleServiceFee: number;
-  co2ValueUsd: number;
+  co2ValueInr: number;
   aiCost: number;
   totalNetValue: number;
 }

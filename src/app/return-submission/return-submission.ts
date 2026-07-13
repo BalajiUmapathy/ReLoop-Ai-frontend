@@ -72,6 +72,9 @@ export class ReturnSubmissionComponent implements OnInit {
   eligible = computed(() => this.resaleProbability() >= 70);
   hasData = computed(() => this.product().length > 0);
 
+  /** Indicative list price (INR) by category — feeds the dynamic-pricing / revenue agents. */
+  basePrice = computed(() => ({ Electronics: 8999, Apparel: 2499, Home: 3499, Sports: 3999, Books: 699 }[this.category()] ?? 3499));
+
   /** Calls the real Match agent (POST /api/matchagent/find-match) and shows its verdict. */
   runLiveMatch() {
     if (!this.product()) return;
@@ -118,7 +121,8 @@ export class ReturnSubmissionComponent implements OnInit {
         category: this.category(),
         returnReason: this.returnReason(),
         location: this.locationHub(),
-        basePrice: 4999,
+        condition: this.condition(),
+        basePrice: this.basePrice(),
       })
       .pipe(catchError(() => of(null)))
       .subscribe((res) => {
