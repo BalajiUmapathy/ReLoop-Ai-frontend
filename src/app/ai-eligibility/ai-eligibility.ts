@@ -176,6 +176,10 @@ export class AiEligibilityComponent {
             saleWindow: res.expectedDaysToSell ? `${res.expectedDaysToSell} Days` : p.saleWindow,
             logisticsSavings: `₹${Math.round(res.costSaved)}`,
             co2Reduction: `${res.co2Saved.toFixed(1)} KG`,
+            // Quick match agent doesn't compute resale revenue / profit — only the full
+            // pipeline does. Blank them in live mode instead of showing seed constants.
+            revenueRecovery: '—',
+            profitImpact: '—',
             explanations: [res.explanation, ...p.explanations].filter(Boolean).slice(0, 3),
           };
           this.overlays.update((m) => new Map(m).set(idx, overlay));

@@ -6,9 +6,16 @@
       <p>Converting returned products into local revenue opportunities while reducing logistics costs and emissions across all UPS hubs.</p>
     </div>
     <div class="hero-right">
-      <span class="rev-label">{{ live() ? 'Live Revenue Counter' : 'Revenue Counter' }}</span>
+      <span class="rev-label">{{ live() ? 'Live Value Recovered' : 'Total Value Recovered' }}</span>
       <span class="rev-amount">{{ heroRevenue() }}</span>
       <span class="rev-sub">recovered this quarter</span>
+      @if (heroBreakdown().length) {
+        <div class="rev-breakdown">
+          @for (b of heroBreakdown(); track b.label) {
+            <span class="rev-chip"><em>{{ b.label }}</em>{{ b.value }}</span>
+          }
+        </div>
+      }
     </div>
   </div>
 
@@ -22,15 +29,10 @@
         <div class="ns-desc">Returns diverted from central warehouse via local resale</div>
       </div>
       <div class="ns-separator"></div>
-      <div class="ns-change">
-        <span class="ns-change-val">&#8593; +8.4%</span>
-        <span class="ns-change-period">vs last quarter</span>
-      </div>
-      <div class="ns-separator"></div>
       <div class="ns-progress-wrap">
         <div class="ns-progress-header">
-          <span>Progress to target 85%</span>
-          <span class="ns-pct">{{ diversionRate() }}</span>
+          <span>Progress to 85% target</span>
+          <span class="ns-pct">{{ diversionGap() }}</span>
         </div>
         <div class="ns-progress-track">
           <div class="ns-progress-fill" [style.width.%]="diversionProgress()"></div>
@@ -49,7 +51,7 @@
         </div>
         <div class="mc-value">{{ card.value }}</div>
         <div class="mc-desc">{{ card.description }}</div>
-        <div class="mc-change">{{ card.change }}</div>
+        @if (card.change) { <div class="mc-change">{{ card.change }}</div> }
       </div>
     }
   </div>
@@ -75,41 +77,36 @@
 
   <!-- Charts Row 1 -->
   <div class="charts-row">
-    <!-- Donut Chart -->
+    <!-- Donut Chart: live from /dashboard/segments -->
     <div class="chart-card">
-      <div class="chart-title">Returns by Category</div>
+      <div class="chart-title">Returns by Category
+        @if (chartsLive()) { <span class="rci-live">● LIVE</span> }
+      </div>
       <div class="donut-wrap">
         <svg viewBox="0 0 120 120" class="donut-svg">
-          <circle cx="60" cy="60" r="45" fill="none" stroke="#1a0d06" stroke-width="22" stroke-dasharray="98 185" stroke-dashoffset="0"/>
-          <circle cx="60" cy="60" r="45" fill="none" stroke="#22C55E" stroke-width="22" stroke-dasharray="69 214" stroke-dashoffset="-98"/>
-          <circle cx="60" cy="60" r="45" fill="none" stroke="#F5A623" stroke-width="22" stroke-dasharray="55 228" stroke-dashoffset="-167"/>
-          <circle cx="60" cy="60" r="45" fill="none" stroke="#6366F1" stroke-width="22" stroke-dasharray="20 263" stroke-dashoffset="-222"/>
-          <circle cx="60" cy="60" r="45" fill="none" stroke="#9CA3AF" stroke-width="22" stroke-dasharray="15 268" stroke-dashoffset="-242"/>
-          <circle cx="60" cy="60" r="45" fill="none" stroke="#92400E" stroke-width="22" stroke-dasharray="26 257" stroke-dashoffset="-257"/>
+          @for (s of categoryDonut(); track s.label) {
+            <circle cx="60" cy="60" r="45" fill="none" [attr.stroke]="s.color" stroke-width="22"
+                    [attr.stroke-dasharray]="s.dash" [attr.stroke-dashoffset]="s.offset"/>
+          }
         </svg>
       </div>
       <div class="donut-legend">
-        <span class="dl"><span class="dd" style="background:#F5A623"></span>Apparel</span>
-        <span class="dl"><span class="dd" style="background:#92400E"></span>Books</span>
-        <span class="dl"><span class="dd" style="background:#1a0d06"></span>Electronics</span>
-        <span class="dl"><span class="dd" style="background:#22C55E"></span>Home</span>
-        <span class="dl"><span class="dd" style="background:#9CA3AF"></span>Other</span>
-        <span class="dl"><span class="dd" style="background:#6366F1"></span>Sports</span>
+        @for (s of categoryDonut(); track s.label) {
+          <span class="dl"><span class="dd" [style.background]="s.color"></span>{{ s.label }} ({{ s.share | number:'1.0-0' }}%)</span>
+        }
       </div>
     </div>
 
-    <!-- Bar Chart: Returns by Region -->
+    <!-- Bar Chart: Returns by Region — volume from /dashboard/locations -->
     <div class="chart-card">
-      <div class="chart-title">Returns by Region</div>
+      <div class="chart-title">Return Volume by Region
+        @if (chartsLive()) { <span class="rci-live">● LIVE</span> }
+      </div>
       <div class="bar-chart">
-        <div class="bar-y-labels">
-          <span>3800</span><span>2850</span><span>1900</span><span>950</span><span>0</span>
-        </div>
         <div class="bar-groups">
-          @for (r of regions; track r.label) {
+          @for (r of regionBars(); track r.label) {
             <div class="bar-group">
-              <div class="bar dark" [style.height.%]="r.dark/38"></div>
-              <div class="bar gold" [style.height.%]="r.gold/38"></div>
+              <div class="bar dark wide" [style.height.%]="r.pct"></div>
               <span class="bar-label">{{ r.label }}</span>
             </div>
           }
@@ -117,98 +114,86 @@
       </div>
     </div>
 
-    <!-- Line Chart: Monthly Savings -->
+    <!-- Line Chart: Monthly Return Volume — live from segment trend -->
     <div class="chart-card">
-      <div class="chart-title">Monthly Savings Trend</div>
+      <div class="chart-title">Monthly Return Volume
+        @if (chartsLive()) { <span class="rci-live">● LIVE</span> }
+      </div>
       <svg class="line-svg" viewBox="0 0 260 160" preserveAspectRatio="none">
-        <line x1="0" y1="0" x2="0" y2="140" stroke="#E5E7EB" stroke-width="1"/>
+        <line x1="0" y1="18" x2="0" y2="140" stroke="#E5E7EB" stroke-width="1"/>
         <line x1="0" y1="140" x2="260" y2="140" stroke="#E5E7EB" stroke-width="1"/>
-        <text x="0" y="12" font-size="9" fill="#9CA3AF">180</text>
-        <text x="0" y="47" font-size="9" fill="#9CA3AF">135</text>
-        <text x="0" y="82" font-size="9" fill="#9CA3AF">90</text>
-        <text x="0" y="117" font-size="9" fill="#9CA3AF">45</text>
-        <text x="0" y="144" font-size="9" fill="#9CA3AF">0</text>
-        <!-- Dark line: 90→125→130→148→155→178 -->
-        <polyline points="20,90 72,72 124,68 176,52 228,46 258,18" fill="none" stroke="#1a0d06" stroke-width="2"/>
-        <!-- Gold line: 75→82→88→95→102→110 -->
-        <polyline points="20,103 72,96 124,90 176,82 228,74 258,66" fill="none" stroke="#F5A623" stroke-width="2"/>
-        <text x="14" y="155" font-size="8" fill="#9CA3AF">Jan</text>
-        <text x="66" y="155" font-size="8" fill="#9CA3AF">Feb</text>
-        <text x="116" y="155" font-size="8" fill="#9CA3AF">Mar</text>
-        <text x="168" y="155" font-size="8" fill="#9CA3AF">Apr</text>
-        <text x="218" y="155" font-size="8" fill="#9CA3AF">May</text>
-        <text x="248" y="155" font-size="8" fill="#9CA3AF">Jun</text>
+        <text x="2" y="14" font-size="9" fill="#9CA3AF">{{ volumeMax() }}</text>
+        <text x="2" y="138" font-size="9" fill="#9CA3AF">0</text>
+        @if (volumePoly()) {
+          <polyline [attr.points]="volumePoly()" fill="none" stroke="#1a0d06" stroke-width="2"/>
+        }
+        @for (m of volumeMonths(); track m.label) {
+          <text [attr.x]="m.x - 8" y="155" font-size="8" fill="#9CA3AF">{{ m.label }}</text>
+        }
       </svg>
     </div>
   </div>
 
   <!-- Charts Row 2 -->
   <div class="charts-row">
-    <!-- Top Revenue Locations -->
+    <!-- Top Revenue Locations — value from /dashboard/locations -->
     <div class="chart-card">
-      <div class="chart-title">Top Revenue Recovery Locations</div>
+      <div class="chart-title">Value Recovered by Location
+        @if (chartsLive()) { <span class="rci-live">● LIVE</span> }
+      </div>
       <div class="rev-bars">
-        @for (loc of revLocations; track loc.name) {
+        @for (loc of revLocations(); track loc.name) {
           <div class="rev-row">
             <span class="rev-name">{{ loc.name }}</span>
             <div class="rev-bar-wrap">
-              <div class="rev-bar-gold" [style.width.%]="loc.pct * 0.6"></div>
-              <div class="rev-bar-dark" [style.width.%]="loc.pct * 0.35"></div>
+              <div class="rev-bar-gold" [style.width.%]="loc.pct"></div>
             </div>
             <span class="rev-val">{{ loc.val }}</span>
           </div>
         }
+        @if (!revLocations().length) { <div class="chart-empty">Awaiting match data…</div> }
       </div>
     </div>
 
-    <!-- 10-Day Holding Trend -->
+    <!-- Match Score by Segment — live from /dashboard/segments -->
     <div class="chart-card">
-      <div class="chart-title">10-Day Holding Success Trend</div>
-      <svg class="line-svg" viewBox="0 0 260 160" preserveAspectRatio="none">
-        <line x1="0" y1="140" x2="260" y2="140" stroke="#E5E7EB" stroke-width="1"/>
-        <text x="0" y="12" font-size="9" fill="#9CA3AF">100</text>
-        <text x="0" y="47" font-size="9" fill="#9CA3AF">75</text>
-        <text x="0" y="82" font-size="9" fill="#9CA3AF">50</text>
-        <text x="0" y="117" font-size="9" fill="#9CA3AF">25</text>
-        <text x="0" y="144" font-size="9" fill="#9CA3AF">0</text>
-        <polyline points="20,102 63,99 106,100 149,97 192,95 235,90 258,86" fill="none" stroke="#22C55E" stroke-width="2"/>
-        <circle cx="20" cy="102" r="3" fill="#22C55E"/>
-        <circle cx="63" cy="99" r="3" fill="#22C55E"/>
-        <circle cx="106" cy="100" r="3" fill="#22C55E"/>
-        <circle cx="149" cy="97" r="3" fill="#22C55E"/>
-        <circle cx="192" cy="95" r="3" fill="#22C55E"/>
-        <circle cx="235" cy="90" r="3" fill="#22C55E"/>
-        <circle cx="258" cy="86" r="3" fill="#22C55E"/>
-        <text x="14" y="155" font-size="8" fill="#9CA3AF">W1</text>
-        <text x="57" y="155" font-size="8" fill="#9CA3AF">W2</text>
-        <text x="100" y="155" font-size="8" fill="#9CA3AF">W3</text>
-        <text x="143" y="155" font-size="8" fill="#9CA3AF">W4</text>
-        <text x="186" y="155" font-size="8" fill="#9CA3AF">W5</text>
-        <text x="229" y="155" font-size="8" fill="#9CA3AF">W6</text>
-        <text x="252" y="155" font-size="8" fill="#9CA3AF">W7</text>
-      </svg>
+      <div class="chart-title">Match Score by Segment
+        @if (chartsLive()) { <span class="rci-live">● LIVE</span> }
+      </div>
+      <div class="bar-chart">
+        <div class="bar-y-labels">
+          <span>100</span><span>75</span><span>50</span><span>25</span><span>0</span>
+        </div>
+        <div class="bar-groups">
+          @for (s of segScores(); track s.label) {
+            <div class="bar-group">
+              <div class="bar gold wide" [style.height.%]="s.pct"></div>
+              <span class="bar-label">{{ s.label }}</span>
+            </div>
+          }
+        </div>
+      </div>
     </div>
 
-    <!-- Carbon Reduction Trend -->
+    <!-- AI Decision Quality — live from /feedback/summary -->
     <div class="chart-card">
-      <div class="chart-title">Carbon Reduction Trend</div>
-      <svg class="line-svg" viewBox="0 0 260 160" preserveAspectRatio="none">
-        <line x1="0" y1="140" x2="260" y2="140" stroke="#E5E7EB" stroke-width="1"/>
-        <text x="0" y="12" font-size="9" fill="#9CA3AF">8</text>
-        <text x="0" y="52" font-size="9" fill="#9CA3AF">6</text>
-        <text x="0" y="87" font-size="9" fill="#9CA3AF">4</text>
-        <text x="0" y="117" font-size="9" fill="#9CA3AF">2</text>
-        <text x="0" y="144" font-size="9" fill="#9CA3AF">0</text>
-        <defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#22C55E" stop-opacity="0.3"/><stop offset="100%" stop-color="#22C55E" stop-opacity="0"/></linearGradient></defs>
-        <polygon points="20,112 72,105 124,95 176,80 228,60 258,30 258,140 20,140" fill="url(#cg)"/>
-        <polyline points="20,112 72,105 124,95 176,80 228,60 258,30" fill="none" stroke="#22C55E" stroke-width="2"/>
-        <text x="14" y="155" font-size="8" fill="#9CA3AF">Jan</text>
-        <text x="66" y="155" font-size="8" fill="#9CA3AF">Feb</text>
-        <text x="116" y="155" font-size="8" fill="#9CA3AF">Mar</text>
-        <text x="168" y="155" font-size="8" fill="#9CA3AF">Apr</text>
-        <text x="218" y="155" font-size="8" fill="#9CA3AF">May</text>
-        <text x="248" y="155" font-size="8" fill="#9CA3AF">Jun</text>
-      </svg>
+      <div class="chart-title">AI Decision Quality
+        @if (decisionQuality()) { <span class="rci-live">● LIVE</span> }
+      </div>
+      @if (decisionQuality(); as dq) {
+        <div class="dq-hero">
+          <span class="dq-big">{{ dq.acceptRate | number:'1.0-0' }}%</span>
+          <span class="dq-hero-lbl">associate accept rate</span>
+        </div>
+        <div class="dq-rows">
+          <div class="dq-row"><span class="dq-dot green"></span>Accepted<span class="dq-n">{{ dq.accepted }}</span></div>
+          <div class="dq-row"><span class="dq-dot amber"></span>Modified<span class="dq-n">{{ dq.modified }}</span></div>
+          <div class="dq-row"><span class="dq-dot red"></span>Rejected<span class="dq-n">{{ dq.rejected }}</span></div>
+          <div class="dq-row dq-conf"><span>Avg AI confidence</span><span class="dq-n">{{ dq.avgConfidence | number:'1.0-0' }}%</span></div>
+        </div>
+      } @else {
+        <div class="chart-empty">No associate reviews captured yet.</div>
+      }
     </div>
   </div>
 
@@ -230,39 +215,10 @@
           <div class="rci-cause-label">Root Cause</div>
           <div class="rci-cause">{{ rc.dominantReason }}</div>
           <div class="rci-meta"><span>Top Location</span><span>Annual Impact</span></div>
-          <div class="rci-meta-vals"><span>{{ rc.topLocation }}</span><span class="red-val">{{ impact(rc.estimatedAnnualImpactUsd) }}</span></div>
+          <div class="rci-meta-vals"><span>{{ rc.topLocation }}</span><span class="red-val">{{ impact(rc.estimatedAnnualImpact) }}</span></div>
           <span class="rci-badge amber-badge">{{ rc.fixTicket }}</span>
         </div>
       }
     </div>
-  </div>
-
-  <!-- Agent Performance -->
-  <div class="agent-card">
-    <div class="agent-header">
-      <div class="agent-avatar">&#129302;</div>
-      <div>
-        <div class="agent-title">Agent Performance</div>
-        <div class="agent-sub">Real-time AI agent decision quality and escalation metrics</div>
-      </div>
-    </div>
-    <table class="agent-table">
-      <thead><tr><th>AGENT NAME</th><th>DECISIONS MADE</th><th>PRECISION %</th><th>ESCALATION RATE</th></tr></thead>
-      <tbody>
-        @for (a of agents; track a.name) {
-          <tr>
-            <td><span class="agent-dot"></span>{{ a.name }}</td>
-            <td>{{ a.decisions }}</td>
-            <td>
-              <div class="prec-cell">
-                <div class="prec-bar"><div class="prec-fill" [style.width]="a.precision"></div></div>
-                <span class="prec-val">{{ a.precision }}</span>
-              </div>
-            </td>
-            <td><span class="esc-badge" [class.esc-low]="a.escLow" [class.esc-mid]="a.escMid" [class.esc-high]="a.escHigh">{{ a.escalation }}</span></td>
-          </tr>
-        }
-      </tbody>
-    </table>
   </div>
 </main>

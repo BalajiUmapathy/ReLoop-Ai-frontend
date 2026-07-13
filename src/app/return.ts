@@ -49,6 +49,8 @@ export class ReturnService {
   private api = inject(ApiService);
   /** True once the list has been replaced with live backend data. */
   live = signal(false);
+  /** True while the first live fetch is in flight (seed data shows meanwhile). */
+  loading = signal(false);
   private hydrated = false;
 
   /**
@@ -59,10 +61,12 @@ export class ReturnService {
   hydrateFromBackend(): void {
     if (this.hydrated) return;
     this.hydrated = true;
+    this.loading.set(true);
     forkJoin({
       matches: this.api.getMatches().pipe(catchError(() => of(null))),
       inventory: this.api.getInventory().pipe(catchError(() => of(null))),
     }).subscribe(({ matches, inventory }) => {
+      this.loading.set(false);
       if (!matches || !matches.data?.length) return;
       const holdByReturn = new Map<string, DebugInventory>();
       inventory?.data?.forEach((inv) => holdByReturn.set(inv.returnId, inv));

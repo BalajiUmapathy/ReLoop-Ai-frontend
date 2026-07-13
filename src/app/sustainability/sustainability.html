@@ -159,7 +159,7 @@
     <div class="chart-card">
       <div class="chart-title">Top Sustainability Hubs</div>
       <div class="hub-lb">
-        @for (h of hubs; track h.name; let i = $index) {
+        @for (h of hubs(); track h.name; let i = $index) {
           <div class="hlb-row">
             <span class="hlb-rank">#{{ i + 1 }}</span>
             <div class="hlb-mid">
@@ -215,12 +215,12 @@
     <div class="summary-dark">
       <div class="sum-sup">EXECUTIVE AI SUMMARY</div>
       <div class="sum-title">Business Impact Assessment</div>
-      <p class="sum-text">The platform has transformed reverse logistics from a cost center into a <span class="sum-highlight">revenue-generating operation</span> through AI-driven local resale optimization. With a 315% ROI and ₹8.5M projected annual benefit, the platform delivers measurable executive value across cost, revenue, and sustainability dimensions.</p>
+      <p class="sum-text">The platform has transformed reverse logistics from a cost center into a <span class="sum-highlight">revenue-generating operation</span> through AI-driven local resale optimization, delivering measurable executive value across cost, revenue, and sustainability dimensions.</p>
     </div>
     <div class="summary-green">
       <div class="sum-sup">AI SUSTAINABILITY SUMMARY</div>
       <div class="sum-title">Environmental Impact Report</div>
-      <p class="sum-text">Local resale strategy <strong>reduced transportation emissions by 32%</strong>, improved inventory circulation efficiency, accelerated revenue recovery, and significantly reduced warehouse processing costs &mdash; directly advancing UPS's carbon-neutral 2050 commitment.</p>
+      <p class="sum-text">Local resale strategy <strong>cut transportation emissions</strong>, improved inventory circulation efficiency, accelerated revenue recovery, and significantly reduced warehouse processing costs &mdash; directly advancing UPS's carbon-neutral 2050 commitment.</p>
     </div>
   </div>
 </main>

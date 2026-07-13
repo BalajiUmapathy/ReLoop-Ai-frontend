@@ -68,7 +68,6 @@ export class ReturnSubmissionComponent implements OnInit {
   conditionScore = computed(() => ({ Excellent: 98, Good: 75, Fair: 45, Poor: 20 }[this.condition()] ?? 75));
   demandScore = computed(() => ({ Electronics: 94, Apparel: 78, Home: 65, Sports: 70, Books: 40 }[this.category()] ?? 70));
   resaleProbability = computed(() => Math.round(this.conditionScore() * 0.6 + this.demandScore() * 0.4));
-  confidenceScore = computed(() => this.product().length > 2 ? 86 : 0);
   saleWindow = computed(() => ({ Excellent: '2-3 Days', Good: '4-6 Days', Fair: '7-10 Days', Poor: '14+ Days' }[this.condition()] ?? '4-6 Days'));
   eligible = computed(() => this.resaleProbability() >= 70);
   hasData = computed(() => this.product().length > 0);

@@ -96,6 +96,9 @@
             <td><button class="review-btn">Review Ticket</button></td>
           </tr>
         }
+        @if (!current().tickets.length) {
+          <tr><td class="empty-row" colspan="6">No fix tickets yet for this segment.</td></tr>
+        }
       </tbody>
     </table>
   </div>
@@ -136,6 +139,9 @@
               <td class="sku-volume">{{ s.volume }}</td>
               <td><a class="sku-fix">{{ s.fix }}</a></td>
             </tr>
+          }
+          @if (!current().topSkus.length) {
+            <tr><td class="empty-row" colspan="4">No returned-SKU data yet.</td></tr>
           }
         </tbody>
       </table>

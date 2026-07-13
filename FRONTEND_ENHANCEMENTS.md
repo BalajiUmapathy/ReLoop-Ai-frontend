@@ -25,15 +25,33 @@ UPS remains the business context throughout the app (UPS hubs, UPS's 2050 commit
 |------|-----------------------|----------|
 | **Dashboard** | KPI cards (`GET /api/dashboard/metrics`), Root-cause clusters (`/rootcauseagent/cluster`), **"Today's AI Insights"** now derived from live metrics + clusters (diversion rate, local matches recovered, CO₂ avoided, top systemic driver) | Seed figures |
 | **AI Eligibility** | Product cards, scores, decisions, savings, hub leaderboard & trends from `GET /api/debug/matches` | 3 seed products |
-| **Local Demand** | Per-hub featured return, return ID, inventory count from real matches | Seed hub data |
-| **AI Copilot** | Free-text questions call the live LLM via `POST /api/businessexplanation` | 6 scripted sample prompts |
-| **Sustainability** | KPI cards + feedback metrics | Static ESG badge |
+| **Local Demand** | Per-hub featured return, return ID, inventory count from real matches; buyer list wired to `GET /api/buyers?hub=` (`getBuyers`) | Seed hub data + illustrative buyers |
+| **AI Copilot** | Free-text **and all 6 suggested prompts** computed from live data (`/api/businessexplanation`, `/dashboard/metrics`, `/debug/matches`, `/debug/inventory`) | Honest offline message |
+| **Sustainability** | KPI cards + feedback metrics + hub leaderboard from live matches | Seed figures |
 
 All live pages use `catchError(() => of(null))`, so if the API is offline the demo still renders
 seed data and never breaks.
 
 ### Build status
-- Frontend builds clean: `npx ng build --configuration development` → 0 errors, ~1.98 MB bundle.
+- Frontend builds clean: `npx ng build --configuration development` → 0 errors, ~1.99 MB bundle.
+
+### Session update (2026-07-13) — page-by-page honesty reconciliation
+Removed misleading/hardcoded data and wired real data where it already existed. **These frontend
+files are done — teammate should NOT re-edit them (avoids merge conflicts):**
+- **Dashboard** — removed fabricated month-over-month deltas.
+- **Return Submission** — relabeled the "LIVE AI" preview as an honest "Instant Estimate"; removed
+  the fake constant rows (`Policy Validation 70`, `Confidence 86`).
+- **Returns Inventory** — "Live Sync" badge now shows "Demo Data" when offline.
+- **AI Eligibility** — blanked `Revenue Recovery` / `Profit Impact` in live mode (not returned by
+  the quick match agent).
+- **Local Demand** — wired `getBuyers` contract + honest label (buyers stay seed until 3b ships).
+- **AI Copilot** — all 6 suggested prompts + intro cards now computed from live data.
+- **Sustainability** — fixed `acceptRate ×100` bug; hub leaderboard now live from matches; removed
+  non-derivable fabricated cards (ROI 315%, Inventory 42%, Warehouse cost, Model-accuracy trend).
+- **API service** — added `BuyerDto` + `getBuyers()`, removed dead `getDebugDashboard()`.
+
+**Remaining frontend work (teammate, per 3a):** dashboard charts (region bars, trend line, agents
+table) and the Sustainability ESG badge.
 
 ---
 
@@ -54,7 +72,8 @@ frontend — the DB itself stays synthetic.
 - `POST /api/rootcauseagent/cluster`
 
 **Still synthetic in the frontend (no backend source exists yet)**
-- **Local Demand buyer lists** (`local-demand.ts` → `buyers[]`) — there is **no buyer endpoint**.
+- **Local Demand buyer lists** (`local-demand.ts` → `buyers[]`) — frontend now calls `getBuyers(hub)`
+  but **no `GET /api/buyers` endpoint exists yet**, so it falls back to a seed list.
 - **Dashboard charts**: donut, region bars, savings trend line, `revLocations`, and the
   `agents` precision/escalation table are static demo visuals.
 - **Sustainability**: "ESG Score A+" badge is static.
@@ -64,16 +83,19 @@ frontend — the DB itself stays synthetic.
 ## 3. Still to be done — all layers (for a 100% live demo)
 
 ### 3a. Frontend
-1. **Buyer lists** (`local-demand.ts` → `buyers[]`) — the last hardcoded list. Wire to a new
-   `GET /api/buyers?hub=` once the backend endpoint exists (see 3b).
-2. **Dashboard charts from live data**:
+> ✅ Items 1, 4, 5 below were completed on 2026-07-13 (see "Session update" in section 1).
+> **Do not re-edit those frontend files** — only items 2 and 3 remain.
+
+1. ✅ **Buyer lists** — `local-demand.ts` now calls `getBuyers(hub)` → `GET /api/buyers?hub=` with a
+   seed fallback and an honest "illustrative" label until the backend endpoint ships (see 3b).
+2. **Dashboard charts from live data** *(remaining)*:
    - Region bars / `revLocations` → aggregate `GET /api/debug/matches` by city (data already exists).
    - Savings trend line → consume a new `GET /api/dashboard/trend` (see 3b).
    - Agents table precision/escalation → consume a new agent-telemetry endpoint (see 3b).
-3. **Sustainability ESG badge** → compute from live metrics instead of a static "A+".
-4. **Copilot sample prompts (optional)** — route the 6 scripted prompts through the live LLM too
-   (free-text already is).
-5. **Cleanup** — remove dead `getDebugDashboard()` from `api.service.ts` (unused).
+3. **Sustainability ESG badge** → compute from live metrics instead of a static "A+" *(remaining)*.
+4. ✅ **Copilot prompts** — all 6 suggested prompts now computed from live metrics/matches/inventory
+   (free-text already used the live LLM).
+5. ✅ **Cleanup** — dead `getDebugDashboard()` removed from `api.service.ts`.
 
 ### 3b. Backend (missing endpoints / upgrades)
 1. **Buyers endpoint** — **no buyer endpoint exists.** Add `GET /api/buyers?hub=` served from a new

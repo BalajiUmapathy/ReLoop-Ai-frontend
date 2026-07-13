@@ -27,16 +27,13 @@ export interface DashboardMetrics {
   distanceSavedKm: number;
   costSaved: number;
   co2SavedKg: number;
+  totalValueRecovered: number;
+  resaleMargin: number;
+  resaleServiceFee: number;
+  co2Value: number;
+  aiCost: number;
   rootCauseInsights: RootCauseInsight[];
 }
-export interface DebugDashboard {
-  metrics: DashboardMetrics;
-  spValidation: string;
-  tableCounts: Record<string, number>;
-  pipelineHealth: Record<string, string>;
-}
-
-// ---- Debug data tables ----
 export interface DebugDataResult<T = Record<string, any>> {
   table: string;
   rowCount: number;
@@ -238,7 +235,7 @@ export interface ReturnCluster {
   count: number;
   percentage: number;
   topLocation: string;
-  estimatedAnnualImpactUsd: number;
+  estimatedAnnualImpact: number;
   fixTicket: string;
 }
 export interface ReturnClusterResult {
@@ -305,8 +302,16 @@ export interface SegmentAnalytics {
   distanceSavedKm: number;
   avgMatchScore: number;
   avgConfidence: number;
+  avgDaysToSell: number;
   topReasons: SegmentReason[];
   trend: SegmentTrendPoint[];
+}
+export interface LocationAnalytics {
+  location: string;
+  returns: number;
+  costRecovered: number;
+  co2SavedKg: number;
+  avgMatchScore: number;
 }
 
 // ---- Packages ----
@@ -318,6 +323,15 @@ export interface PackageDto {
   status: string;
   weight: number;
   isReturnable: boolean;
+}
+
+// ---- Local buyers (hyperlocal demand) ----
+export interface BuyerDto {
+  name: string;
+  zone: string;
+  distance: string;
+  delivery: string;
+  score: number;
 }
 
 /**
@@ -339,9 +353,6 @@ export class ApiService {
   getDashboardMetrics(): Observable<DashboardMetrics> {
     return this.unwrap(this.http.get<ApiResponse<DashboardMetrics>>(`${this.base}/dashboard/metrics`));
   }
-  getDebugDashboard(): Observable<DebugDashboard> {
-    return this.unwrap(this.http.get<ApiResponse<DebugDashboard>>(`${this.base}/debug/dashboard`));
-  }
 
   // Debug data tables
   getReturns(): Observable<DebugDataResult<DebugReturn>> {
@@ -355,6 +366,13 @@ export class ApiService {
   }
   getPackages(): Observable<PackageDto[]> {
     return this.unwrap(this.http.get<ApiResponse<PackageDto[]>>(`${this.base}/packages`));
+  }
+
+  /** Hyperlocal buyers near a hub. Backend endpoint pending — callers fall back to seed data. */
+  getBuyers(hub: string): Observable<BuyerDto[]> {
+    return this.unwrap(
+      this.http.get<ApiResponse<BuyerDto[]>>(`${this.base}/buyers`, { params: { hub } }),
+    );
   }
 
   // Agents
@@ -384,5 +402,8 @@ export class ApiService {
   }
   getSegments(): Observable<SegmentAnalytics[]> {
     return this.unwrap(this.http.get<ApiResponse<SegmentAnalytics[]>>(`${this.base}/dashboard/segments`));
+  }
+  getLocations(): Observable<LocationAnalytics[]> {
+    return this.unwrap(this.http.get<ApiResponse<LocationAnalytics[]>>(`${this.base}/dashboard/locations`));
   }
 }

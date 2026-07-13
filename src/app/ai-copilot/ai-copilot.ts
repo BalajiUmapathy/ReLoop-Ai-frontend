@@ -1,7 +1,7 @@
 import { Component, signal, inject, ElementRef, ViewChild, AfterViewChecked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { catchError, of } from 'rxjs';
-import { ApiService } from '../core/api.service';
+import { ApiService, DashboardMetrics, DebugMatch, DebugInventory } from '../core/api.service';
 
 interface Card { icon: string; label: string; value: string; green?: boolean; amber?: boolean; }
 interface Message {
@@ -26,12 +26,9 @@ export class AiCopilotComponent implements AfterViewChecked {
   messages = signal<Message[]>([
     {
       role: 'ai', time: '09:00 AM',
-      cards: [
-        { icon: '✅', label: 'PLATFORM STATUS', value: 'All systems operational', green: true },
-        { icon: '🤖', label: 'ACTIVE AI AGENTS', value: '3 models running' },
-        { icon: '📦', label: 'PENDING OPPORTUNITIES', value: '8,920 items', amber: true },
-        { icon: '💰', label: "TODAY'S REVENUE", value: '₹39.7L', green: true },
-      ],
+      text: 'Welcome to ReLoop AI Copilot — grounded in live return, match and savings data. '
+        + 'Ask about resale opportunities, hub savings, holding-period risk, or category ROI.',
+      cards: [],
     },
   ]);
 
@@ -44,68 +41,42 @@ export class AiCopilotComponent implements AfterViewChecked {
     'Which category gives the highest ROI?',
   ];
 
-  private responses: Record<string, Message> = {
-    'Show top resale opportunities today': {
-      role: 'ai', time: '',
-      text: 'Based on real-time AI analysis across all UPS hubs, here are today\'s highest-priority resale opportunities. Chennai and Bangalore hubs lead with electronics showing 90%+ demand scores.',
-      cards: [
-        { icon: '💰', label: 'REVENUE IMPACT', value: '₹35.1L', green: true },
-        { icon: '📊', label: 'DEMAND FORECAST', value: '92% avg', amber: true },
-        { icon: '📈', label: 'PROFIT POTENTIAL', value: '+₹31.6L', green: true },
-        { icon: '⚡', label: 'TOP CATEGORY', value: 'Electronics' },
-      ],
-    },
-    'Show items nearing end of holding period': {
-      role: 'ai', time: '',
-      text: '4 items are in Day 8+ of their 10-day holding window. Immediate action recommended to avoid central warehouse return costs.',
-      cards: [
-        { icon: '⚠️', label: 'AT RISK ITEMS', value: '4 items', amber: true },
-        { icon: '💸', label: 'COST IF RETURNED', value: '₹1.03L', amber: true },
-        { icon: '📍', label: 'TOP HUB AT RISK', value: 'Delhi Hub B' },
-        { icon: '⏱️', label: 'AVG HOLD DAY', value: 'Day 9.2' },
-      ],
-    },
-    'Which hub is generating the most savings?': {
-      role: 'ai', time: '',
-      text: 'Chennai Hub leads all locations this quarter with ₹2.6Cr in recovered revenue and 92% demand score. Bangalore follows closely at ₹2.36Cr.',
-      cards: [
-        { icon: '🏆', label: 'TOP HUB', value: 'Chennai', green: true },
-        { icon: '💰', label: 'REVENUE SAVED', value: '₹2.6Cr', green: true },
-        { icon: '📉', label: 'LOGISTICS SAVED', value: '₹40L' },
-        { icon: '🌿', label: 'CO₂ REDUCED', value: '12.4T', green: true },
-      ],
-    },
-    'What products should be prioritized for local resale?': {
-      role: 'ai', time: '',
-      text: 'Electronics — especially wireless earbuds and ANC headphones — have the highest local resale scores. Prioritize Excellent condition items in Chennai and Bangalore hubs.',
-      cards: [
-        { icon: '🎧', label: 'TOP PRODUCT', value: 'Wireless Earbuds', green: true },
-        { icon: '📊', label: 'RESALE SCORE', value: '96%', green: true },
-        { icon: '🏪', label: 'BEST HUB', value: 'Chennai Central' },
-        { icon: '⚡', label: 'SALE WINDOW', value: '2–3 Days' },
-      ],
-    },
-    'How much transportation cost was saved this month?': {
-      role: 'ai', time: '',
-      text: 'Local resale diverted 71.6% of returns from central warehouse this month, saving significant logistics costs across all 5 hubs.',
-      cards: [
-        { icon: '🚚', label: 'TRANSPORT SAVED', value: '₹4.04Cr', green: true },
-        { icon: '📦', label: 'ITEMS DIVERTED', value: '8,920', green: true },
-        { icon: '🛣️', label: 'MILES SAVED', value: '125K' },
-        { icon: '🌿', label: 'CO₂ REDUCED', value: '42.8T', green: true },
-      ],
-    },
-    'Which category gives the highest ROI?': {
-      role: 'ai', time: '',
-      text: 'Electronics delivers the highest ROI at 89% local resale conversion, followed by Apparel at 76%. Focus AI eligibility scoring on Electronics for maximum impact.',
-      cards: [
-        { icon: '⚡', label: 'TOP CATEGORY', value: 'Electronics', green: true },
-        { icon: '📈', label: 'CONVERSION RATE', value: '89%', green: true },
-        { icon: '💰', label: 'AVG REVENUE/ITEM', value: '₹12,000' },
-        { icon: '🎯', label: 'DEMAND SCORE', value: '94%', amber: true },
-      ],
-    },
-  };
+  // Live data backing every copilot answer.
+  private metrics = signal<DashboardMetrics | null>(null);
+  private matches = signal<DebugMatch[]>([]);
+  private inventory = signal<DebugInventory[]>([]);
+
+  constructor() {
+    this.api.getDashboardMetrics().pipe(catchError(() => of(null))).subscribe((m) => {
+      this.metrics.set(m);
+      this.refreshIntro();
+    });
+    this.api.getMatches().pipe(catchError(() => of(null))).subscribe((r) => {
+      this.matches.set(r?.data ?? []);
+      this.refreshIntro();
+    });
+    this.api.getInventory().pipe(catchError(() => of(null))).subscribe((r) => {
+      this.inventory.set(r?.data ?? []);
+    });
+  }
+
+  /** Fill the welcome card row from live metrics once they arrive. */
+  private refreshIntro() {
+    const m = this.metrics();
+    if (!m) return;
+    const pending = Math.max(0, m.totalReturns - m.localMatches);
+    const cards: Card[] = [
+      { icon: '✅', label: 'PLATFORM STATUS', value: 'All systems operational', green: true },
+      { icon: '📦', label: 'PENDING OPPORTUNITIES', value: `${pending.toLocaleString('en-IN')} items`, amber: true },
+      { icon: '💰', label: 'COST SAVED TO DATE', value: this.money(m.costSaved), green: true },
+      { icon: '♻️', label: 'DIVERSION RATE', value: `${Math.round(m.diversionRate)}%`, green: true },
+    ];
+    this.messages.update((list) => {
+      const copy = [...list];
+      copy[0] = { ...copy[0], cards };
+      return copy;
+    });
+  }
 
   private now() {
     return new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
@@ -118,12 +89,11 @@ export class AiCopilotComponent implements AfterViewChecked {
     this.messages.update(m => [...m, { role: 'user', text: msg, time: t }]);
     this.input.set('');
 
-    // Curated prompts answer instantly for a snappy demo.
-    const canned = this.responses[msg];
-    if (canned) {
+    // Suggested prompts are answered from live return / match / inventory data.
+    if (this.prompts.includes(msg)) {
       setTimeout(() => {
-        this.messages.update(m => [...m, { ...canned, time: this.now() }]);
-      }, 500);
+        this.messages.update(m => [...m, this.buildAnswer(msg)]);
+      }, 400);
       return;
     }
 
@@ -135,9 +105,15 @@ export class AiCopilotComponent implements AfterViewChecked {
       .subscribe((res) => {
         this.thinking.set(false);
         if (!res) {
-          this.messages.update(m => [...m, {
+          const m = this.metrics();
+          this.messages.update(list => [...list, {
             role: 'ai', time: this.now(),
-            text: `AI analysis for "${msg}" is being processed. Based on current hub data, all systems are operating optimally with a 71.6% diversion rate.`,
+            text: m
+              ? `Live figures: ${Math.round(m.diversionRate)}% diversion rate, `
+                + `${m.localMatches.toLocaleString('en-IN')} local matches, ${this.money(m.costSaved)} saved. `
+                + `Ask a suggested prompt for a detailed breakdown.`
+              : `I need a live backend connection to answer "${msg}" with grounded figures. `
+                + `Start the API to see real numbers.`,
           }]);
           return;
         }
@@ -150,6 +126,171 @@ export class AiCopilotComponent implements AfterViewChecked {
           cards: cards.length ? cards : undefined,
         }]);
       });
+  }
+
+  /** Builds a grounded answer for a suggested prompt from live data. */
+  private buildAnswer(prompt: string): Message {
+    const rows = this.matches();
+    const m = this.metrics();
+    const inv = this.inventory();
+    const offline: Message = {
+      role: 'ai', time: this.now(),
+      text: `I need a live backend connection to answer "${prompt}" with real figures. Start the API to see grounded numbers.`,
+    };
+
+    switch (prompt) {
+      case 'Show top resale opportunities today': {
+        if (!rows.length) return offline;
+        const avg = Math.round(rows.reduce((s, r) => s + r.matchScore, 0) / rows.length);
+        const totalCost = rows.reduce((s, r) => s + r.costSaved, 0);
+        const cat = this.categoryRoi()[0];
+        return {
+          role: 'ai', time: this.now(),
+          text: `${rows.length} live matches are scored for local resale with an average match score of ${avg}.`
+            + (cat ? ` ${cat.cat} leads on demand.` : ''),
+          cards: [
+            { icon: '💰', label: 'LOGISTICS SAVED', value: this.money(totalCost), green: true },
+            { icon: '📊', label: 'AVG MATCH SCORE', value: `${avg}%`, amber: true },
+            { icon: '⚡', label: 'TOP CATEGORY', value: cat?.cat ?? '—' },
+            { icon: '📦', label: 'LOCAL MATCHES', value: (m?.localMatches ?? rows.length).toLocaleString('en-IN') },
+          ],
+        };
+      }
+      case 'Show items nearing end of holding period': {
+        if (!inv.length) return offline;
+        const atRisk = inv.filter(i => i.holdingDays >= 8);
+        const topHub = this.topCity(atRisk.map(i => i.location));
+        const avgDay = atRisk.length
+          ? (atRisk.reduce((s, i) => s + i.holdingDays, 0) / atRisk.length).toFixed(1)
+          : '—';
+        return {
+          role: 'ai', time: this.now(),
+          text: `${atRisk.length} item(s) are in day 8+ of the 10-day holding window. `
+            + `Acting now avoids central-warehouse return costs.`,
+          cards: [
+            { icon: '⚠️', label: 'AT RISK ITEMS', value: `${atRisk.length} items`, amber: true },
+            { icon: '📍', label: 'TOP HUB AT RISK', value: topHub ?? '—' },
+            { icon: '⏱️', label: 'AVG HOLD DAY', value: `Day ${avgDay}` },
+            { icon: '📦', label: 'TOTAL IN HOLDING', value: inv.length.toLocaleString('en-IN') },
+          ],
+        };
+      }
+      case 'Which hub is generating the most savings?': {
+        const hubs = this.hubSavings();
+        if (!hubs.length) return offline;
+        const top = hubs[0];
+        return {
+          role: 'ai', time: this.now(),
+          text: `${top.city} leads with ${this.money(top.cost)} in logistics cost saved across `
+            + `${top.n} matches (avg score ${Math.round(top.avg)}).`,
+          cards: [
+            { icon: '🏆', label: 'TOP HUB', value: top.city, green: true },
+            { icon: '💰', label: 'COST SAVED', value: this.money(top.cost), green: true },
+            { icon: '🌿', label: 'CO₂ REDUCED', value: `${top.co2.toFixed(1)} kg`, green: true },
+            { icon: '📦', label: 'MATCHES', value: `${top.n}` },
+          ],
+        };
+      }
+      case 'What products should be prioritized for local resale?': {
+        if (!rows.length) return offline;
+        const top = [...rows].sort((a, b) => b.matchScore - a.matchScore).slice(0, 1)[0];
+        return {
+          role: 'ai', time: this.now(),
+          text: `${top.productName || top.productId} scores highest for local resale at `
+            + `${Math.round(top.matchScore)}% in ${this.city(top.location)}. `
+            + `Prioritise excellent-condition items in the top-scoring hubs.`,
+          cards: [
+            { icon: '🎯', label: 'TOP PRODUCT', value: this.short(top.productName || top.productId, 18), green: true },
+            { icon: '📊', label: 'MATCH SCORE', value: `${Math.round(top.matchScore)}%`, green: true },
+            { icon: '🏪', label: 'BEST HUB', value: this.city(top.location) },
+            { icon: '🏷️', label: 'CATEGORY', value: `${top.category || 'General'}` },
+          ],
+        };
+      }
+      case 'How much transportation cost was saved this month?': {
+        if (!m) return offline;
+        return {
+          role: 'ai', time: this.now(),
+          text: `Local resale achieved a ${Math.round(m.diversionRate)}% diversion rate, `
+            + `saving ${this.money(m.costSaved)} in logistics and avoiding `
+            + `${Math.round(m.distanceSavedKm).toLocaleString('en-IN')} km of transport.`,
+          cards: [
+            { icon: '🚚', label: 'TRANSPORT SAVED', value: this.money(m.costSaved), green: true },
+            { icon: '📦', label: 'ITEMS DIVERTED', value: m.localMatches.toLocaleString('en-IN'), green: true },
+            { icon: '🛣️', label: 'DISTANCE SAVED', value: `${Math.round(m.distanceSavedKm).toLocaleString('en-IN')} km` },
+            { icon: '🌿', label: 'CO₂ REDUCED', value: `${Math.round(m.co2SavedKg).toLocaleString('en-IN')} kg`, green: true },
+          ],
+        };
+      }
+      case 'Which category gives the highest ROI?': {
+        const cats = this.categoryRoi();
+        if (!cats.length) return offline;
+        const top = cats[0];
+        const second = cats[1];
+        return {
+          role: 'ai', time: this.now(),
+          text: `${top.cat} delivers the highest average match score at ${Math.round(top.avg)}%`
+            + (second ? `, followed by ${second.cat} at ${Math.round(second.avg)}%.` : '.'),
+          cards: [
+            { icon: '⚡', label: 'TOP CATEGORY', value: top.cat, green: true },
+            { icon: '📈', label: 'AVG MATCH SCORE', value: `${Math.round(top.avg)}%`, green: true },
+            { icon: '📦', label: 'MATCHES', value: `${top.n}` },
+            { icon: '🥈', label: 'RUNNER-UP', value: second?.cat ?? '—', amber: true },
+          ],
+        };
+      }
+      default:
+        return offline;
+    }
+  }
+
+  private short(s: string, n: number): string {
+    return !s ? '' : s.length > n ? s.slice(0, n) + '…' : s;
+  }
+
+  private city(loc: string): string {
+    return (loc || 'Unknown').split(/[ ,]/)[0];
+  }
+
+  private topCity(locations: string[]): string | null {
+    const counts = new Map<string, number>();
+    for (const l of locations) {
+      const c = this.city(l);
+      counts.set(c, (counts.get(c) ?? 0) + 1);
+    }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+  }
+
+  private hubSavings() {
+    const agg = new Map<string, { cost: number; co2: number; n: number; score: number }>();
+    for (const m of this.matches()) {
+      const c = this.city(m.location);
+      const a = agg.get(c) ?? { cost: 0, co2: 0, n: 0, score: 0 };
+      a.cost += m.costSaved; a.co2 += m.co2Saved; a.n += 1; a.score += m.matchScore;
+      agg.set(c, a);
+    }
+    return [...agg.entries()]
+      .map(([city, a]) => ({ city, cost: a.cost, co2: a.co2, n: a.n, avg: a.score / a.n }))
+      .sort((x, y) => y.cost - x.cost);
+  }
+
+  private categoryRoi() {
+    const agg = new Map<string, { n: number; score: number }>();
+    for (const m of this.matches()) {
+      const c = m.category || 'General';
+      const a = agg.get(c) ?? { n: 0, score: 0 };
+      a.n += 1; a.score += m.matchScore; agg.set(c, a);
+    }
+    return [...agg.entries()]
+      .map(([cat, a]) => ({ cat, n: a.n, avg: a.score / a.n }))
+      .sort((x, y) => y.avg - x.avg);
+  }
+
+  private money(v: number): string {
+    if (v >= 1e7) return `₹${(v / 1e7).toFixed(1)}Cr`;
+    if (v >= 1e5) return `₹${(v / 1e5).toFixed(1)}L`;
+    if (v >= 1e3) return `₹${(v / 1e3).toFixed(0)}K`;
+    return `₹${Math.round(v).toLocaleString('en-IN')}`;
   }
 
   ngAfterViewChecked() {

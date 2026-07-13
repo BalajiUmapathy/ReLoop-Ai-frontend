@@ -39,6 +39,7 @@
 .policy-table, .ticket-table, .sku-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .policy-table th, .ticket-table th, .sku-table th { padding: 10px 12px; text-align: left; font-size: 10.5px; font-weight: 600; color: #9CA3AF; letter-spacing: 0.5px; text-transform: uppercase; border-bottom: 1.5px solid #F3F4F6; }
 .policy-table td, .ticket-table td, .sku-table td { padding: 13px 12px; color: #374151; border-bottom: 1px solid #F9FAFB; }
+.empty-row { text-align: center; padding: 24px 12px; color: #9CA3AF; font-style: italic; }
 
 .cond-badge { padding: 3px 10px; border-radius: 6px; font-size: 12px; font-weight: 500; }
 .cond-excellent { background: #D1FAE5; color: #065F46; }

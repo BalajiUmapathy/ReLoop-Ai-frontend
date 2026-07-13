@@ -5,8 +5,9 @@
       <p class="page-sub">{{ items().length }} items &middot; Smart AI eligibility scoring active</p>
     </div>
     <div class="header-actions">
-      <span class="live-badge">&#9679; Live Sync</span>
-      <button class="btn-export">Export CSV</button>
+      @if (loading()) { <span class="sync-badge">&#9673; Syncing live data…</span> }
+      <span class="live-badge">&#9679; {{ live() ? 'Live Sync' : 'Demo Data' }}</span>
+      <button class="btn-export" (click)="exportCsv()" [disabled]="!items().length">Export CSV</button>
     </div>
   </div>
 
@@ -97,6 +98,11 @@
                 </div>
               }
             </td>
+          </tr>
+        }
+        @if (!items().length) {
+          <tr>
+            <td class="empty-row" colspan="14">No returns match your filters.</td>
           </tr>
         }
       </tbody>

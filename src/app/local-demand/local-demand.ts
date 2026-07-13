@@ -1,6 +1,6 @@
 import { Component, signal, computed, inject, effect } from '@angular/core';
 import { catchError, of } from 'rxjs';
-import { ApiService, DebugMatch } from '../core/api.service';
+import { ApiService, DebugMatch, BuyerDto } from '../core/api.service';
 
 interface HubData {
   featuredReturn: string; returnId: string; location: string; district: string;
@@ -84,16 +84,22 @@ export class LocalDemand {
   };
 
   private liveInfo = signal<Map<string, Partial<HubData>>>(new Map());
+  private buyerOverlays = signal<Map<string, BuyerDto[]>>(new Map());
 
   hub = computed(() => {
     const base = this.hubData[this.activeHub()];
     const info = this.liveInfo().get(this.activeHub());
     const overlay = this.overlays().get(this.activeHub());
-    return { ...base, ...info, ...overlay };
+    const buyers = this.buyerOverlays().get(this.activeHub());
+    const merged = { ...base, ...info, ...overlay };
+    return buyers ? { ...merged, buyers } : merged;
   });
 
   /** True when the active hub's headline numbers came from the live Match agent. */
   live = computed(() => this.overlays().has(this.activeHub()));
+
+  /** True when the active hub's buyer list came from the live buyers endpoint. */
+  buyersLive = computed(() => this.buyerOverlays().has(this.activeHub()));
 
   private api = inject(ApiService);
   private overlays = signal<Map<string, Partial<HubData>>>(new Map());
@@ -153,6 +159,20 @@ export class LocalDemand {
               carbonReduction: `${res.co2Saved.toFixed(1)} KG`,
             }),
           );
+        });
+    });
+
+    // Load real hyperlocal buyers per hub when the endpoint is available; the
+    // seeded list stays as an offline/illustrative fallback until then.
+    effect(() => {
+      const key = this.activeHub();
+      if (this.buyerOverlays().has(key)) return;
+      this.api
+        .getBuyers(this.cityByHub[key])
+        .pipe(catchError(() => of<BuyerDto[]>([])))
+        .subscribe((buyers) => {
+          if (!buyers?.length) return;
+          this.buyerOverlays.update((m) => new Map(m).set(key, buyers));
         });
     });
   }

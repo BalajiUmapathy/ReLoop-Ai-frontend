@@ -169,7 +169,11 @@
   <!-- Matching Customers Table -->
   <div class="customers-card">
     <div class="cust-title">Matching Customers &mdash; {{ hub().location }}</div>
-    <div class="cust-sub">AI-matched based on purchase history, proximity, and preference signals</div>
+    <div class="cust-sub">
+      {{ buyersLive()
+        ? 'AI-matched based on purchase history, proximity, and preference signals'
+        : 'Illustrative buyer list — live buyer matching pending backend availability' }}
+    </div>
     <table class="cust-table">
       <thead>
         <tr>

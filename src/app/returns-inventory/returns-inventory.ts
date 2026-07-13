@@ -16,6 +16,7 @@ export class ReturnsInventoryComponent implements OnInit {
   private api = inject(ApiService);
 
   live = this.svc.live;
+  loading = this.svc.loading;
 
   // Human-in-the-loop feedback
   feedback = signal<FeedbackSummary | null>(null);
@@ -81,5 +82,31 @@ export class ReturnsInventoryComponent implements OnInit {
 
   conditionClass(c: string) {
     return ({ 'Excellent': 'cond-excellent', 'Good': 'cond-good', 'Fair': 'cond-fair', 'Poor': 'cond-poor' } as Record<string,string>)[c] ?? '';
+  }
+
+  /** Exports the currently filtered rows to a CSV file the browser downloads. */
+  exportCsv() {
+    const rows = this.items();
+    if (!rows.length) return;
+    const headers = [
+      'Return ID', 'Product', 'Category', 'Location', 'Hub', 'Condition', 'Return Date',
+      'Hold Days', 'Demand Score', 'Risk Score', 'Avg Markdown', 'Margin Retained', 'Status',
+    ];
+    const escape = (v: string | number) => {
+      const s = String(v ?? '');
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const lines = rows.map((r) => [
+      r.id, r.product, r.category, r.locationHub, r.subHub, r.condition, r.returnDate,
+      r.holdDays, r.demandScore, r.riskScore, r.avgMarkdown, r.marginRetained, r.status,
+    ].map(escape).join(','));
+    const csv = [headers.join(','), ...lines].join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `returns-inventory-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 }

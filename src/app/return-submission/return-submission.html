@@ -2,9 +2,9 @@
   <div class="page-header">
     <div>
       <h1 class="page-title">Submit New Return</h1>
-      <p class="page-sub">AI eligibility preview updates in real time as you fill the form</p>
+      <p class="page-sub">Instant eligibility estimate updates as you fill the form &middot; run the AI agent to confirm</p>
     </div>
-    <span class="ai-live-badge">&#9679; AI Scoring Live</span>
+    <span class="ai-live-badge">&#9679; Instant Estimate</span>
   </div>
 
   <div class="form-layout">
@@ -89,7 +89,7 @@
       <div class="ai-panel-header">
         <div class="ai-avatar">&#129302;</div>
         <div>
-          <div class="ai-title">LIVE AI ELIGIBILITY PREVIEW</div>
+          <div class="ai-title">INSTANT ELIGIBILITY ESTIMATE</div>
           <div class="ai-dot"></div>
         </div>
       </div>
@@ -98,18 +98,16 @@
         <div class="eligibility-badge" [class.eligible]="eligible()" [class.ineligible]="!eligible()">
           <span>{{ eligible() ? '&#10003;' : '&#8855;' }}</span>
           <div>
-            <div class="elig-title">{{ eligible() ? 'Eligible for Local Resale' : 'Not Eligible' }}</div>
-            <div class="elig-sub">AI Determination</div>
+            <div class="elig-title">{{ eligible() ? 'Likely Eligible for Local Resale' : 'Likely Not Eligible' }}</div>
+            <div class="elig-sub">Instant estimate &middot; run the agent to confirm</div>
           </div>
         </div>
 
         <div class="scores">
           @for (s of [
             {label: 'Condition Score', value: conditionScore(), color: '#22C55E'},
-            {label: 'Policy Validation', value: 70, color: '#6366F1'},
             {label: 'Estimated Demand Score', value: demandScore(), color: '#F5A623'},
-            {label: 'Predicted Resale Probability', value: resaleProbability(), color: '#1a0d06'},
-            {label: 'Confidence Score', value: confidenceScore(), color: '#22C55E'}
+            {label: 'Predicted Resale Probability', value: resaleProbability(), color: '#1a0d06'}
           ]; track s.label) {
             <div class="score-row">
               <div class="score-top">
