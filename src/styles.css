@@ -1,0 +1,58 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  background: #1a0d06;
+  scrollbar-width: none;
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Angular host element layout fixes */
+app-root {
+  display: block;
+  height: 100vh;
+  overflow: hidden;
+}
+
+app-sidebar {
+  display: flex;
+  flex-shrink: 0;
+  height: 100vh;
+}
+
+router-outlet {
+  display: none;
+}
+
+app-dashboard,
+app-return-submission,
+app-returns-inventory,
+app-retailer-portal,
+app-local-demand,
+app-ai-eligibility,
+app-ai-copilot,
+app-sustainability {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
