@@ -223,6 +223,31 @@
       </div>
     </div>
 
+    <!-- Image validation readout (vision agent) -->
+    <div class="drawer-image">
+      <div class="di-head">
+        <span class="di-sup">IMAGE VALIDATION · VISION AGENT</span>
+        <span class="di-conf">{{ imageVal(d).imageConfidence * 100 | number:'1.0-0' }}% confidence</span>
+      </div>
+      <div class="di-row">
+        <div class="di-metric">
+          <span class="di-lbl">Condition</span>
+          <span class="cond-badge" [class]="conditionClass(d.condition)">{{ d.condition }}</span>
+        </div>
+        <div class="di-metric">
+          <span class="di-lbl">Damage score</span>
+          <span class="di-dmg" [class]="damageClass(imageVal(d).damageScore)">{{ imageVal(d).damageScore }}/10</span>
+        </div>
+        <div class="di-metric">
+          <span class="di-lbl">Tags</span>
+          <span class="di-tags" [class.missing]="imageVal(d).missingTags">
+            {{ imageVal(d).missingTags ? 'Missing' : 'Intact' }}
+          </span>
+        </div>
+      </div>
+      <p class="di-remark">&ldquo;{{ imageVal(d).imageRemarks }}&rdquo;</p>
+    </div>
+
     @if (d.diversionReasoning) {
       <div class="drawer-reason">
         <span class="dr-lbl">Agent reasoning</span>

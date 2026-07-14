@@ -5,6 +5,7 @@ import { catchError, of } from 'rxjs';
 import { ReturnService } from '../return';
 import { ApiService, FeedbackSummary } from '../core/api.service';
 import { ReturnItem } from '../return';
+import { imageValidationFor, ImageValidation } from '../return';
 
 @Component({
   selector: 'app-returns-inventory',
@@ -174,6 +175,26 @@ export class ReturnsInventoryComponent implements OnInit {
       poor: 'cond-poor', damaged: 'cond-poor', broken: 'cond-poor', defective: 'cond-poor',
     };
     return map[k] ?? 'cond-neutral';
+  }
+
+  /** Vision-agent readout for a row (uses the row's fields, else re-derives). */
+  imageVal(r: ReturnItem): ImageValidation {
+    if (r.damageScore != null && r.imageConfidence != null) {
+      return {
+        damageScore: r.damageScore,
+        imageConfidence: r.imageConfidence,
+        missingTags: r.missingTags ?? false,
+        imageRemarks: r.imageRemarks ?? '',
+      };
+    }
+    return imageValidationFor(r.condition, r.id);
+  }
+
+  /** Damage-score badge colour (low = green, high = red). */
+  damageClass(score: number): string {
+    if (score <= 2) return 'dmg-low';
+    if (score <= 5) return 'dmg-mid';
+    return 'dmg-high';
   }
 
   // ---- Dynamic-pricing detail drawer -------------------------------------

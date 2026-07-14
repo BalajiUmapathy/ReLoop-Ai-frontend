@@ -68,6 +68,11 @@ export interface DebugMatch {
   costSaved: number;
   co2Saved: number;
   createdAt: string;
+  // Image-validation readout (per-row), added by /api/debug/matches.
+  damageScore?: number;
+  imageConfidence?: number;
+  missingTags?: boolean;
+  imageRemarks?: string;
   // Diversion / dynamic-pricing agent output (per-row), added by /api/debug/matches.
   holdingDay?: number;
   daysRemaining?: number;

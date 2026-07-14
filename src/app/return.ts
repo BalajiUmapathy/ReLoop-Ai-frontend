@@ -19,13 +19,51 @@ const SUB_HUBS: Record<string, string[]> = {
 };
 const DEFAULT_SUB_HUBS = ['Central', 'North', 'South', 'East', 'West'];
 
-/** Deterministic neighbourhood sort-hub for a city + stable key, e.g. "Porur". */
+/** Deterministic neighbourhood sort-hub for a city + stable key, e.g. "Porur Hub". */
 export function subHubFor(location: string | undefined, key: string): string {
   const city = (location || 'Chennai').trim();
   const pool = SUB_HUBS[city] ?? DEFAULT_SUB_HUBS;
   let hash = 0;
   for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) | 0;
-  return pool[Math.abs(hash) % pool.length];
+  return `${pool[Math.abs(hash) % pool.length]} Hub`;
+}
+
+export interface ImageValidation {
+  damageScore: number;
+  imageConfidence: number;
+  missingTags: boolean;
+  imageRemarks: string;
+}
+
+/**
+ * Reconstruct the vision-agent readout from a graded condition when the live row
+ * doesn't carry it (seed/offline data). Mirrors the backend DeriveImageValidation.
+ */
+export function imageValidationFor(condition: string | undefined, key: string): ImageValidation {
+  const c = (condition || 'Good').trim().toLowerCase().replace(/\s/g, '');
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) | 0;
+  const jitter = Math.abs(hash) % 3; // 0..2
+
+  let baseDamage: number, baseConf: number, tags: boolean, remark: string;
+  if (['new', 'likenew', 'excellent', 'mint'].includes(c)) {
+    [baseDamage, baseConf, tags, remark] = [0, 0.95, false, 'Pristine unit, tags and packaging intact — cleared for resale.'];
+  } else if (['good', 'used'].includes(c)) {
+    [baseDamage, baseConf, tags, remark] = [2, 0.90, false, 'Light shelf wear, fully functional — eligible for local resale.'];
+  } else if (['fair', 'worn'].includes(c)) {
+    [baseDamage, baseConf, tags, remark] = [5, 0.83, true, 'Visible cosmetic wear and a missing tag — resale at markdown.'];
+  } else if (['poor', 'damaged', 'broken', 'defective'].includes(c)) {
+    [baseDamage, baseConf, tags, remark] = [8, 0.92, true, 'Structural/cosmetic damage detected — not eligible for resale.'];
+  } else {
+    [baseDamage, baseConf, tags, remark] = [3, 0.85, false, 'Condition graded from image — minor wear, resale eligible.'];
+  }
+
+  return {
+    damageScore: Math.max(0, Math.min(10, baseDamage + (jitter - 1))),
+    imageConfidence: Math.max(0, Math.min(1, baseConf + (jitter - 1) * 0.01)),
+    missingTags: tags,
+    imageRemarks: remark,
+  };
 }
 
 export interface ReturnItem {
@@ -54,21 +92,26 @@ export interface ReturnItem {
   sellProbability?: number;
   daysRemaining?: number;
   diversionReasoning?: string;
+  // Image-validation readout.
+  damageScore?: number;
+  imageConfidence?: number;
+  missingTags?: boolean;
+  imageRemarks?: string;
 }
 
 @Injectable({ providedIn: 'root' })
 export class ReturnService {
   private _returns = signal<ReturnItem[]>([
-    { id: 'RET-2025-009', product: 'Mirrorless Camera Kit', category: 'Electronics', condition: 'Fair', locationHub: 'Delhi', subHub: 'Okhla', pickupDate: '2025-06-08', retailer: 'PhotoPro', returnDate: '2025-06-08', holdDays: 13, demandScore: 38, riskScore: 82, avgMarkdown: '22%', marginRetained: '32%', status: 'Rejected' },
-    { id: 'RET-2025-004', product: 'Multi-Cooker 7-in-1', category: 'Home', condition: 'Fair', locationHub: 'Delhi', subHub: 'Gurgaon', pickupDate: '2025-06-10', retailer: 'HomeMart', returnDate: '2025-06-10', holdDays: 11, demandScore: 45, riskScore: 72, avgMarkdown: '18%', marginRetained: '41%', status: 'ReturnToSeller' },
-    { id: 'RET-2025-011', product: 'Gas BBQ Grill', category: 'Home', condition: 'Good', locationHub: 'Bangalore', subHub: 'Whitefield', pickupDate: '2025-06-19', retailer: 'HomeMart', returnDate: '2025-06-19', holdDays: 9, demandScore: 61, riskScore: 25, avgMarkdown: '15%', marginRetained: '55%', status: 'Diverted' },
-    { id: 'RET-2025-008', product: 'Running Shoes (Boost)', category: 'Apparel', condition: 'Good', locationHub: 'Mumbai', subHub: 'Andheri', pickupDate: '2025-06-12', retailer: 'SportsHub', returnDate: '2025-06-12', holdDays: 8, demandScore: 55, riskScore: 45, avgMarkdown: '12%', marginRetained: '58%', status: 'Diverted' },
-    { id: 'RET-2025-007', product: '12.9" Pro Tablet', category: 'Electronics', condition: 'Excellent', locationHub: 'Hyderabad', subHub: 'Gachibowli', pickupDate: '2025-06-16', retailer: 'TechBrand', returnDate: '2025-06-16', holdDays: 7, demandScore: 88, riskScore: 12, avgMarkdown: '—', marginRetained: '89%', status: 'Matched' },
-    { id: 'RET-2025-002', product: 'Running Shoes (Air)', category: 'Apparel', condition: 'Good', locationHub: 'Bangalore', subHub: 'Koramangala', pickupDate: '2025-06-15', retailer: 'SportsHub', returnDate: '2025-06-15', holdDays: 6, demandScore: 78, riskScore: 22, avgMarkdown: '8%', marginRetained: '72%', status: 'Matched' },
-    { id: 'RET-2025-006', product: 'Cordless Stick Vacuum', category: 'Home', condition: 'Good', locationHub: 'Bangalore', subHub: 'Electronic City', pickupDate: '2025-06-17', retailer: 'HomeMart', returnDate: '2025-06-17', holdDays: 5, demandScore: 67, riskScore: 28, avgMarkdown: '5%', marginRetained: '78%', status: 'Eligible' },
-    { id: 'RET-2025-001', product: 'Wireless Earbuds (Pro 2nd Gen)', category: 'Electronics', condition: 'Excellent', locationHub: 'Chennai', subHub: 'Porur', pickupDate: '2025-06-18', retailer: 'TechBrand', returnDate: '2025-06-18', holdDays: 3, demandScore: 92, riskScore: 8, avgMarkdown: '—', marginRetained: '94%', status: 'Eligible' },
-    { id: 'RET-2025-003', product: '65" QLED Smart TV', category: 'Electronics', condition: 'Good', locationHub: 'Mumbai', subHub: 'Powai', pickupDate: '2025-06-20', retailer: 'TechBrand', returnDate: '2025-06-20', holdDays: 1, demandScore: 85, riskScore: 15, avgMarkdown: '—', marginRetained: '91%', status: 'Pending' },
-    { id: 'RET-2025-005', product: 'ANC Over-Ear Headphones', category: 'Electronics', condition: 'Excellent', locationHub: 'Chennai', subHub: 'Velachery', pickupDate: '2025-06-21', retailer: 'TechBrand', returnDate: '2025-06-21', holdDays: 1, demandScore: 91, riskScore: 9, avgMarkdown: '—', marginRetained: '96%', status: 'Approved' },
+    { id: 'RET-2025-009', product: 'Mirrorless Camera Kit', category: 'Electronics', condition: 'Fair', locationHub: 'Delhi', subHub: 'Okhla Hub', pickupDate: '2025-06-08', retailer: 'PhotoPro', returnDate: '2025-06-08', holdDays: 13, demandScore: 38, riskScore: 82, avgMarkdown: '22%', marginRetained: '32%', status: 'Rejected' },
+    { id: 'RET-2025-004', product: 'Multi-Cooker 7-in-1', category: 'Home', condition: 'Fair', locationHub: 'Delhi', subHub: 'Gurgaon Hub', pickupDate: '2025-06-10', retailer: 'HomeMart', returnDate: '2025-06-10', holdDays: 11, demandScore: 45, riskScore: 72, avgMarkdown: '18%', marginRetained: '41%', status: 'ReturnToSeller' },
+    { id: 'RET-2025-011', product: 'Gas BBQ Grill', category: 'Home', condition: 'Good', locationHub: 'Bangalore', subHub: 'Whitefield Hub', pickupDate: '2025-06-19', retailer: 'HomeMart', returnDate: '2025-06-19', holdDays: 9, demandScore: 61, riskScore: 25, avgMarkdown: '15%', marginRetained: '55%', status: 'Diverted' },
+    { id: 'RET-2025-008', product: 'Running Shoes (Boost)', category: 'Apparel', condition: 'Good', locationHub: 'Mumbai', subHub: 'Andheri Hub', pickupDate: '2025-06-12', retailer: 'SportsHub', returnDate: '2025-06-12', holdDays: 8, demandScore: 55, riskScore: 45, avgMarkdown: '12%', marginRetained: '58%', status: 'Diverted' },
+    { id: 'RET-2025-007', product: '12.9" Pro Tablet', category: 'Electronics', condition: 'Excellent', locationHub: 'Hyderabad', subHub: 'Gachibowli Hub', pickupDate: '2025-06-16', retailer: 'TechBrand', returnDate: '2025-06-16', holdDays: 7, demandScore: 88, riskScore: 12, avgMarkdown: '—', marginRetained: '89%', status: 'Matched' },
+    { id: 'RET-2025-002', product: 'Running Shoes (Air)', category: 'Apparel', condition: 'Good', locationHub: 'Bangalore', subHub: 'Koramangala Hub', pickupDate: '2025-06-15', retailer: 'SportsHub', returnDate: '2025-06-15', holdDays: 6, demandScore: 78, riskScore: 22, avgMarkdown: '8%', marginRetained: '72%', status: 'Matched' },
+    { id: 'RET-2025-006', product: 'Cordless Stick Vacuum', category: 'Home', condition: 'Good', locationHub: 'Bangalore', subHub: 'Electronic City Hub', pickupDate: '2025-06-17', retailer: 'HomeMart', returnDate: '2025-06-17', holdDays: 5, demandScore: 67, riskScore: 28, avgMarkdown: '5%', marginRetained: '78%', status: 'Eligible' },
+    { id: 'RET-2025-001', product: 'Wireless Earbuds (Pro 2nd Gen)', category: 'Electronics', condition: 'Excellent', locationHub: 'Chennai', subHub: 'Porur Hub', pickupDate: '2025-06-18', retailer: 'TechBrand', returnDate: '2025-06-18', holdDays: 3, demandScore: 92, riskScore: 8, avgMarkdown: '—', marginRetained: '94%', status: 'Eligible' },
+    { id: 'RET-2025-003', product: '65" QLED Smart TV', category: 'Electronics', condition: 'Good', locationHub: 'Mumbai', subHub: 'Powai Hub', pickupDate: '2025-06-20', retailer: 'TechBrand', returnDate: '2025-06-20', holdDays: 1, demandScore: 85, riskScore: 15, avgMarkdown: '—', marginRetained: '91%', status: 'Pending' },
+    { id: 'RET-2025-005', product: 'ANC Over-Ear Headphones', category: 'Electronics', condition: 'Excellent', locationHub: 'Chennai', subHub: 'Velachery Hub', pickupDate: '2025-06-21', retailer: 'TechBrand', returnDate: '2025-06-21', holdDays: 1, demandScore: 91, riskScore: 9, avgMarkdown: '—', marginRetained: '96%', status: 'Approved' },
   ]);
 
   getReturns() { return this._returns; }
@@ -156,6 +199,15 @@ export class ReturnService {
       sellProbability: m.sellProbability,
       daysRemaining: m.daysRemaining,
       diversionReasoning: m.diversionReasoning,
+      ...(() => {
+        const iv = imageValidationFor(m.condition, m.returnRequestId);
+        return {
+          damageScore: m.damageScore ?? iv.damageScore,
+          imageConfidence: m.imageConfidence ?? iv.imageConfidence,
+          missingTags: m.missingTags ?? iv.missingTags,
+          imageRemarks: m.imageRemarks || iv.imageRemarks,
+        };
+      })(),
     };
   }
 
