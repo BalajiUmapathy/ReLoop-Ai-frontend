@@ -103,6 +103,24 @@
 .dp-full { margin-left: auto; background: #DCFCE7; color: #15803D; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 20px; }
 
 .drawer-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* -- AI eligibility decision block (drawer) --------------- */
+.drawer-elig { border: 1px solid #E5E7EB; border-radius: 12px; padding: 14px 16px; }
+.de-head { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.de-sup { font-size: 10.5px; font-weight: 700; letter-spacing: .06em; color: #9CA3AF; text-transform: uppercase; }
+.de-verdict { font-size: 14px; font-weight: 700; padding: 6px 12px; border-radius: 8px; align-self: flex-start; }
+.de-verdict.eligible { background: #DCFCE7; color: #15803D; }
+.de-verdict.ineligible { background: #FEF3C7; color: #B45309; }
+.de-scores { display: flex; flex-direction: column; gap: 10px; }
+.de-score-head { display: flex; justify-content: space-between; font-size: 11.5px; color: #6B7280; margin-bottom: 4px; }
+.de-v { font-weight: 700; color: #111827; }
+.de-v.green { color: #16A34A; }
+.de-v.red { color: #DC2626; }
+.de-track { height: 6px; background: #F3F4F6; border-radius: 4px; overflow: hidden; }
+.de-fill { height: 100%; border-radius: 4px; }
+.de-fill.green { background: #22C55E; }
+.de-fill.dark { background: #1a0d06; }
+.de-fill.red { background: #EF4444; }
 .dm-cell { background: #F9FAFB; border: 1px solid #F3F4F6; border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
 .dm-lbl { font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; color: #9CA3AF; font-weight: 600; }
 .dm-val { font-size: 17px; font-weight: 800; color: #111827; }

@@ -136,6 +136,30 @@
       }
     </div>
 
+    <!-- AI eligibility decision (merged from the former AI Eligibility page) -->
+    <div class="drawer-elig">
+      <div class="de-head">
+        <span class="de-sup">AI ELIGIBILITY DECISION</span>
+        <span class="de-verdict" [class.eligible]="isEligible(d)" [class.ineligible]="!isEligible(d)">
+          {{ isEligible(d) ? '✓' : '✗' }} {{ eligibilityLabel(d) }}
+        </span>
+      </div>
+      <div class="de-scores">
+        <div class="de-score">
+          <div class="de-score-head"><span>Demand potential</span><span class="de-v green">{{ d.demandScore }}%</span></div>
+          <div class="de-track"><div class="de-fill green" [style.width.%]="d.demandScore"></div></div>
+        </div>
+        <div class="de-score">
+          <div class="de-score-head"><span>Sell-through</span><span class="de-v">{{ sellPct(d) | number:'1.0-0' }}%</span></div>
+          <div class="de-track"><div class="de-fill dark" [style.width.%]="sellPct(d)"></div></div>
+        </div>
+        <div class="de-score">
+          <div class="de-score-head"><span>Clearance risk</span><span class="de-v" [class.red]="d.riskScore >= 50">{{ d.riskScore }}%</span></div>
+          <div class="de-track"><div class="de-fill red" [style.width.%]="d.riskScore"></div></div>
+        </div>
+      </div>
+    </div>
+
     <!-- Metric grid -->
     <div class="drawer-metrics">
       <div class="dm-cell">

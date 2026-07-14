@@ -23,6 +23,21 @@
 .chart-card { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
 .chart-title { font-size: 13px; font-weight: 600; color: #111827; margin-bottom: 10px; }
 .chart-svg { width: 100%; height: 160px; overflow: visible; }
+
+/* 30-day live trend charts (merged from Trends page) */
+.tchart-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.tchart-head-left { display: flex; align-items: center; gap: 8px; }
+.tchart-icon { font-size: 16px; }
+.tchart-unit { font-size: 10px; font-weight: 600; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.4px; }
+.tkpi-row { display: flex; gap: 18px; margin-bottom: 6px; }
+.tkpi { display: flex; flex-direction: column; }
+.tkpi-label { font-size: 9.5px; font-weight: 600; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.3px; }
+.tkpi-val { font-size: 16px; font-weight: 700; color: #111827; }
+.tchart-svg { width: 100%; height: auto; display: block; }
+.tlegend { display: flex; gap: 16px; margin-top: 8px; }
+.tleg-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #6B7280; }
+.tleg-line { width: 16px; height: 3px; border-radius: 2px; }
+.tleg-line.dashed { background: repeating-linear-gradient(90deg,#F97316 0 4px,transparent 4px 7px) !important; }
 .donut-wrap { display: flex; justify-content: center; margin: 4px 0; }
 .donut-svg { width: 120px; height: 120px; transform: rotate(-90deg); }
 .donut-legend { display: flex; flex-wrap: wrap; gap: 6px 12px; justify-content: center; margin-top: 8px; }

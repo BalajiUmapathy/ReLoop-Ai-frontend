@@ -1,8 +1,13 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { catchError, of, forkJoin } from 'rxjs';
-import { ApiService, DebugMatch } from '../core/api.service';
+import { ApiService, DebugMatch, DashboardTrendPoint } from '../core/api.service';
 
 interface Card { icon: string; label: string; value: string; desc?: string; color: string; valClass: string; }
+
+interface TrendChart {
+  title: string; icon: string; color: string; fillId: string;
+  getValue: (p: DashboardTrendPoint) => number; format: (v: number) => string; unit: string;
+}
 
 @Component({
   selector: 'app-sustainability',
@@ -36,18 +41,79 @@ export class SustainabilityComponent implements OnInit {
     { name: 'Hyderabad Hub', co2: '1.3t', score: 71, barW: 71 },
   ]);
 
-  agentCards = signal([
-    { icon: '🎯', label: 'AGENT PRECISION (AVG)', value: '92.9%', valClass: 'green' },
-    { icon: '⚠️', label: 'ESCALATION RATE (AVG)', value: '7.2%', valClass: 'amber' },
-    { icon: '📊', label: 'DECISIONS THIS QUARTER', value: '32,330', valClass: 'dark' },
-  ]);
+  // ---- 30-day live performance trends (merged from the former Trends page) ----
+  trendPoints = signal<DashboardTrendPoint[]>([]);
+  trendCharts: TrendChart[] = [
+    {
+      title: 'Cost Savings Trend', icon: '💰', color: '#22C55E', fillId: 'susFillSavings',
+      getValue: (p) => p.costSaved,
+      format: (v) => v >= 1000 ? `₹${(v / 1000).toFixed(1)}K` : `₹${Math.round(v)}`, unit: '₹',
+    },
+    {
+      title: 'Returns vs Local Matches', icon: '🔗', color: '#6366F1', fillId: 'susFillDiversion',
+      getValue: (p) => p.localMatches, format: (v) => `${Math.round(v)}`, unit: 'matches',
+    },
+    {
+      title: 'CO₂ Reduction Trend', icon: '🌿', color: '#14B8A6', fillId: 'susFillCo2',
+      getValue: (p) => p.co2SavedKg,
+      format: (v) => v >= 1000 ? `${(v / 1000).toFixed(1)}T` : `${v.toFixed(1)} kg`, unit: 'kg',
+    },
+  ];
+
+  trendPolylines = computed(() => {
+    const pts = this.trendPoints();
+    if (!pts.length) return this.trendCharts.map(() => ({ line: '', area: '', yLabels: ['0', '0', '0', '0', '0'], xLabels: [] as string[], kpiTotal: 0, kpiAvg: 0, kpiPeak: 0 }));
+
+    const W = 500, H = 180, PX = 10, PY = 10;
+    const plotW = W - PX * 2, plotH = H - PY * 2;
+    const xStep = pts.length > 1 ? plotW / (pts.length - 1) : 0;
+    const step = Math.max(1, Math.floor(pts.length / 6));
+    const xLabels = pts
+      .map((p) => new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }))
+      .filter((_, i) => i % step === 0 || i === pts.length - 1);
+
+    return this.trendCharts.map((c) => {
+      const vals = pts.map(c.getValue);
+      const peak = Math.max(...vals, 1);
+      const yMax = Math.ceil(peak * 1.15) || 100;
+      const toY = (v: number) => PY + plotH - (v / yMax) * plotH;
+      const toX = (i: number) => PX + i * xStep;
+      const line = vals.map((v, i) => `${toX(i)},${toY(v)}`).join(' ');
+      const area = `${toX(0)},${toY(0)} ${line} ${toX(vals.length - 1)},${PY + plotH} ${toX(0)},${PY + plotH}`;
+      const total = vals.reduce((s, v) => s + v, 0);
+      return {
+        line, area,
+        yLabels: [this.shortNum(yMax), this.shortNum(yMax * 0.75), this.shortNum(yMax * 0.5), this.shortNum(yMax * 0.25), '0'],
+        xLabels, kpiTotal: total, kpiAvg: total / vals.length, kpiPeak: peak,
+      };
+    });
+  });
+
+  returnsLine = computed(() => {
+    const pts = this.trendPoints();
+    if (!pts.length) return '';
+    const W = 500, H = 180, PX = 10, PY = 10;
+    const plotW = W - PX * 2, plotH = H - PY * 2;
+    const xStep = pts.length > 1 ? plotW / (pts.length - 1) : 0;
+    const matchVals = pts.map((p) => p.localMatches);
+    const returnVals = pts.map((p) => p.returns);
+    const peak = Math.max(...matchVals, ...returnVals, 1);
+    const yMax = Math.ceil(peak * 1.15) || 100;
+    const toY = (v: number) => PY + plotH - (v / yMax) * plotH;
+    return returnVals.map((v, i) => `${PX + i * xStep},${toY(v)}`).join(' ');
+  });
+
+  shortNum(v: number): string {
+    if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+    if (v >= 1_000) return `${(v / 1_000).toFixed(1)}K`;
+    return `${Math.round(v)}`;
+  }
 
   ngOnInit(): void {
     forkJoin({
       metrics: this.api.getDashboardMetrics().pipe(catchError(() => of(null))),
-      feedback: this.api.getFeedbackSummary().pipe(catchError(() => of(null))),
       matches: this.api.getMatches().pipe(catchError(() => of(null))),
-    }).subscribe(({ metrics, feedback, matches }) => {
+    }).subscribe(({ metrics, matches }) => {
       if (metrics) {
         this.live.set(true);
         this.patch(this.finCards, 'REVENUE RECOVERED', this.money(metrics.costSaved));
@@ -60,15 +126,13 @@ export class SustainabilityComponent implements OnInit {
         // Diesel reverse-haul ~0.13 L/km avoided.
         this.patch(this.envCards, 'FUEL SAVED', `${Math.round(metrics.distanceSavedKm * 0.13).toLocaleString()} L`);
       }
-      if (feedback && feedback.total > 0) {
-        // AcceptRate is already a 0-100 percentage from the backend.
-        this.patch(this.agentCards, 'AGENT PRECISION (AVG)', `${feedback.acceptRate.toFixed(1)}%`);
-        const escalation = ((feedback.modified + feedback.rejected) / feedback.total) * 100;
-        this.patch(this.agentCards, 'ESCALATION RATE (AVG)', `${escalation.toFixed(1)}%`);
-        this.patch(this.agentCards, 'DECISIONS THIS QUARTER', feedback.total.toLocaleString());
-      }
       const rows = matches?.data ?? [];
       if (rows.length) this.buildHubs(rows);
+    });
+
+    // Live 30-day trend charts (merged from the former Trends page).
+    this.api.getDashboardTrend(30).pipe(catchError(() => of(null))).subscribe((data) => {
+      if (data) this.trendPoints.set(data);
     });
   }
 

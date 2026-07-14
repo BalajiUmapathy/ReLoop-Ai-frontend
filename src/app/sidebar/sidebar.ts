@@ -50,13 +50,9 @@ export class SidebarComponent {
     { label: 'Executive Dashboard', icon: '⊞', route: '/dashboard' },
     { label: 'Return Submission Portal', icon: '📋', route: '/return-submission' },
     { label: 'Returns Inventory', icon: '📦', route: '/returns-inventory' },
-    { label: 'AI Eligibility & Analytics', icon: '📊', route: '/ai-eligibility' },
     { label: 'Retailer Portal', icon: '🛍️', route: '/retailer-portal' },
     { label: 'Local Demand Matching', icon: '📍', route: '/local-demand' },
-    { label: 'Buyers Directory', icon: '🏪', route: '/buyers' },
-    { label: 'Trend Analytics', icon: '📈', route: '/trends' },
     { label: 'AI Copilot Assistant', icon: '💬', route: '/ai-copilot' },
-    { label: 'Sustainability & Business Impact', icon: '🌱', route: '/sustainability' },
-    { label: 'Agent Performance', icon: '📡', route: '/agent-performance' },
+    { label: 'Sustainability & Impact', icon: '🌱', route: '/sustainability' },
   ];
 }

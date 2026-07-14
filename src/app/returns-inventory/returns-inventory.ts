@@ -90,6 +90,18 @@ export class ReturnsInventoryComponent implements OnInit {
   openDetail(r: ReturnItem) { this.selected.set(r); }
   closeDetail() { this.selected.set(null); }
 
+  /** Eligibility verdict shown in the drawer (merged from the old AI Eligibility page). */
+  isEligible(r: ReturnItem): boolean {
+    return ['Eligible', 'Matched', 'Sold Locally'].includes(r.status) || r.demandScore >= 60;
+  }
+  eligibilityLabel(r: ReturnItem): string {
+    return this.isEligible(r) ? 'Eligible for Local Resale' : 'Manual Review Required';
+  }
+  /** Sell-through probability as a 0-100 percentage (agent value or demand fallback). */
+  sellPct(r: ReturnItem): number {
+    return (r.sellProbability ?? r.demandScore / 100) * 100;
+  }
+
   /** Compact INR formatter for the pricing drawer (₹1.2K / ₹8.4K style). */
   money(v?: number): string {
     if (v == null) return '—';
