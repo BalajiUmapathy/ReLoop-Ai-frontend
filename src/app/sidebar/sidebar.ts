@@ -57,5 +57,6 @@ export class SidebarComponent {
     { label: 'Trend Analytics', icon: '📈', route: '/trends' },
     { label: 'AI Copilot Assistant', icon: '💬', route: '/ai-copilot' },
     { label: 'Sustainability & Business Impact', icon: '🌱', route: '/sustainability' },
+    { label: 'Agent Performance', icon: '📡', route: '/agent-performance' },
   ];
 }

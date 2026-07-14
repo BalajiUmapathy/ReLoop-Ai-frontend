@@ -1,0 +1,226 @@
+<main class="main">
+
+  <!-- ===== Page Header ===== -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Agent Performance Dashboard</h1>
+      <p class="page-sub">Live AI agent telemetry — success rate, precision, escalation &amp; response time</p>
+    </div>
+    <div class="header-right">
+      <span class="refresh-time">Updated {{ lastRefreshedStr() }}</span>
+      <span class="live-badge">&#9679; Live</span>
+      <button class="refresh-btn" (click)="loadData()" [disabled]="loading()">&#8635; Refresh</button>
+    </div>
+  </div>
+
+  <!-- ===== KPI Summary Cards ===== -->
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-icon">🤖</div>
+      <div class="kpi-body">
+        <div class="kpi-label">Active Agents</div>
+        <div class="kpi-value">{{ totalAgents() }}</div>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon">📊</div>
+      <div class="kpi-body">
+        <div class="kpi-label">Total Decisions</div>
+        <div class="kpi-value">{{ formatLargeNum(totalDecisions()) }}</div>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon">✅</div>
+      <div class="kpi-body">
+        <div class="kpi-label">Avg Success Rate</div>
+        <div class="kpi-value" [class.green]="avgSuccessRate() >= 90" [class.amber]="avgSuccessRate() >= 70 && avgSuccessRate() < 90" [class.red]="avgSuccessRate() < 70">
+          {{ avgSuccessRate() | number:'1.1-1' }}%
+        </div>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon">🎯</div>
+      <div class="kpi-body">
+        <div class="kpi-label">Avg Precision</div>
+        <div class="kpi-value" [class.green]="avgPrecision() >= 90" [class.amber]="avgPrecision() >= 75 && avgPrecision() < 90" [class.red]="avgPrecision() < 75">
+          {{ avgPrecision() | number:'1.1-1' }}%
+        </div>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon">⏱️</div>
+      <div class="kpi-body">
+        <div class="kpi-label">Avg Response Time</div>
+        <div class="kpi-value" [class.green]="avgResponseTime() <= 100" [class.amber]="avgResponseTime() > 100 && avgResponseTime() <= 200" [class.red]="avgResponseTime() > 200">
+          {{ formatTime(avgResponseTime()) }}
+        </div>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon">⚠️</div>
+      <div class="kpi-body">
+        <div class="kpi-label">High Escalation</div>
+        <div class="kpi-value" [class.red]="highEscalationCount() > 0" [class.green]="highEscalationCount() === 0">
+          {{ highEscalationCount() }} agent{{ highEscalationCount() !== 1 ? 's' : '' }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Filter Bar ===== -->
+  <div class="filter-bar">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input
+        class="search-input"
+        type="text"
+        placeholder="Filter by agent name…"
+        [ngModel]="filterText()"
+        (ngModelChange)="filterText.set($event)"
+      />
+      @if (filterText()) {
+        <button class="clear-btn" (click)="filterText.set('')">✕</button>
+      }
+    </div>
+    <div class="filter-legend">
+      <span class="legend-dot green"></span><span class="legend-text">Healthy (≥90%)</span>
+      <span class="legend-dot amber"></span><span class="legend-text">Watch (70–90%)</span>
+      <span class="legend-dot red"></span><span class="legend-text">Critical (&lt;70%)</span>
+    </div>
+  </div>
+
+  <!-- ===== Loading ===== -->
+  @if (loading()) {
+    <div class="loading-wrap">
+      <div class="spinner"></div>
+      <p class="loading-text">Loading agent telemetry…</p>
+    </div>
+  }
+
+  <!-- ===== Error ===== -->
+  @if (error() && !loading()) {
+    <div class="error-banner">
+      <span class="error-icon">⚠️</span>
+      <span>{{ error() }}</span>
+      <button class="retry-btn" (click)="loadData()">Retry</button>
+    </div>
+  }
+
+  <!-- ===== Table ===== -->
+  @if (!loading() && sorted().length) {
+    <div class="table-card">
+      <div class="table-toolbar">
+        <span class="table-title">Agent Telemetry &mdash; {{ sorted().length }} agent{{ sorted().length !== 1 ? 's' : '' }}</span>
+        <div class="col-legend">Click a column header to sort</div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="perf-table">
+          <thead>
+            <tr>
+              <th class="th-sortable" (click)="setSort('agentName')">
+                AGENT <span class="sort-icon">{{ sortIcon('agentName') }}</span>
+              </th>
+              <th class="th-sortable" (click)="setSort('totalRuns')">
+                TOTAL RUNS <span class="sort-icon">{{ sortIcon('totalRuns') }}</span>
+              </th>
+              <th class="th-sortable" (click)="setSort('successRate')">
+                SUCCESS RATE <span class="sort-icon">{{ sortIcon('successRate') }}</span>
+              </th>
+              <th class="th-sortable" (click)="setSort('precisionRate')">
+                PRECISION <span class="sort-icon">{{ sortIcon('precisionRate') }}</span>
+              </th>
+              <th class="th-sortable" (click)="setSort('escalationRate')">
+                ESCALATION % <span class="sort-icon">{{ sortIcon('escalationRate') }}</span>
+              </th>
+              <th class="th-sortable" (click)="setSort('averageResponseTime')">
+                AVG TIME <span class="sort-icon">{{ sortIcon('averageResponseTime') }}</span>
+              </th>
+              <th>STATUS</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of sorted(); track row.agentName) {
+              <tr class="perf-row">
+                <!-- Agent name -->
+                <td>
+                  <div class="agent-cell">
+                    <span class="agent-icon">{{ agentIcon(row.agentName) }}</span>
+                    <div>
+                      <div class="agent-name">{{ friendlyName(row.agentName) }}</div>
+                      <div class="agent-id">{{ row.agentName }}</div>
+                    </div>
+                  </div>
+                </td>
+
+                <!-- Total runs -->
+                <td>
+                  <div class="runs-cell">
+                    <span class="runs-val">{{ formatLargeNum(row.totalRuns) }}</span>
+                    <span class="runs-sub">{{ formatLargeNum(row.successfulRuns) }} ok</span>
+                  </div>
+                </td>
+
+                <!-- Success Rate -->
+                <td>
+                  <div class="metric-cell">
+                    <div class="bar-wrap">
+                      <div class="bar-fill" [style.width.%]="row.successRate" [style.background]="barColor(row.successRate)"></div>
+                    </div>
+                    <span class="metric-badge" [class]="successClass(row.successRate)">
+                      {{ row.successRate | number:'1.1-1' }}%
+                    </span>
+                  </div>
+                </td>
+
+                <!-- Precision -->
+                <td>
+                  <div class="metric-cell">
+                    <div class="bar-wrap">
+                      <div class="bar-fill" [style.width.%]="row.precisionRate" [style.background]="barColor(row.precisionRate)"></div>
+                    </div>
+                    <span class="metric-badge" [class]="precisionClass(row.precisionRate)">
+                      {{ row.precisionRate | number:'1.1-1' }}%
+                    </span>
+                  </div>
+                </td>
+
+                <!-- Escalation % -->
+                <td>
+                  <span class="metric-badge esc-badge" [class]="escalationClass(row.escalationRate)">
+                    {{ row.escalationRate | number:'1.1-1' }}%
+                  </span>
+                </td>
+
+                <!-- Avg Response Time -->
+                <td>
+                  <span class="metric-badge time-badge" [class]="responseTimeClass(row.averageResponseTime)">
+                    {{ formatTime(row.averageResponseTime) }}
+                  </span>
+                </td>
+
+                <!-- Status -->
+                <td>
+                  @let status = overallStatus(row);
+                  <span class="status-chip" [class]="status.cls">
+                    {{ status.label }}
+                  </span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+
+  <!-- ===== Empty State ===== -->
+  @if (!loading() && filtered().length === 0) {
+    <div class="empty-card">
+      <span class="empty-icon">🤖</span>
+      <p>No agents match <strong>"{{ filterText() }}"</strong></p>
+      <button class="retry-btn" (click)="filterText.set('')">Clear filter</button>
+    </div>
+  }
+
+</main>

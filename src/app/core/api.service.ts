@@ -339,9 +339,11 @@ export interface DashboardTrendPoint {
 // ---- Agent Telemetry ----
 export interface AgentTelemetry {
   agentName: string;
-  decisionsMade: number;
-  precision: number;
+  totalRuns: number;
+  successfulRuns: number;
+  precisionRate: number;
   escalationRate: number;
+  averageResponseTime: number;
 }
 
 // ---- Packages ----

@@ -1,0 +1,168 @@
+/* ============================================================
+   ESG Badge Component — Styles
+   The pill adapts its colours entirely via [style.x] bindings
+   from the EsgResult object, so no grade-specific selectors needed.
+   ============================================================ */
+
+/* ---- Pill (compact header badge) ---- */
+.esg-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid;
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  background: none;
+  transition: opacity 0.15s, box-shadow 0.15s;
+  line-height: 1.4;
+}
+.esg-pill:hover {
+  opacity: 0.88;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+}
+
+.esg-leaf   { font-size: 14px; }
+.esg-grade  { font-weight: 800; font-size: 13.5px; }
+.esg-score-num {
+  font-size: 11px;
+  background: rgba(0,0,0,0.08);
+  border-radius: 10px;
+  padding: 1px 7px;
+}
+.esg-label-text { font-size: 11px; opacity: 0.85; }
+.esg-chevron { font-size: 9px; opacity: 0.6; margin-left: 2px; }
+
+/* ---- Expandable panel ---- */
+.esg-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 100;
+  background: #fff;
+  border: 1.5px solid;
+  border-radius: 14px;
+  padding: 18px 20px;
+  min-width: 380px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  animation: fadeDown 0.18s ease;
+}
+@keyframes fadeDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* The parent must be position:relative for the panel to anchor correctly.
+   The sustainability page-header already uses flex, so we wrap in a
+   relative container via the host element — see sustainability.html. */
+:host {
+  position: relative;
+  display: inline-block;
+}
+
+/* ---- Panel header ---- */
+.esg-panel-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.esg-panel-grade {
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1;
+}
+.esg-panel-score {
+  font-size: 13px;
+  font-weight: 500;
+  margin-left: 8px;
+  opacity: 0.75;
+}
+.esg-panel-label {
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+/* ---- Gauge ---- */
+.gauge-track {
+  height: 8px;
+  background: #F3F4F6;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+.gauge-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+
+/* ---- Breakdown table ---- */
+.breakdown-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+  margin-bottom: 12px;
+}
+.breakdown-table thead th {
+  text-align: left;
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #9CA3AF;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0 6px 6px 0;
+  border-bottom: 1px solid #F3F4F6;
+}
+.breakdown-table tbody td {
+  padding: 7px 6px 7px 0;
+  border-top: 1px solid #F9FAFB;
+  color: #374151;
+  vertical-align: middle;
+}
+.dim-label  { font-weight: 600; color: #111827; }
+.dim-raw    { color: #6B7280; font-size: 11px; }
+.dim-weight { color: #9CA3AF; text-align: center; }
+.dim-score  { font-weight: 700; font-size: 11px; margin-left: 4px; }
+.dim-contrib { font-weight: 700; font-size: 12px; text-align: right; }
+
+/* ---- Mini bar inside table ---- */
+.mini-bar-wrap {
+  display: inline-block;
+  width: 48px;
+  height: 5px;
+  background: #F3F4F6;
+  border-radius: 3px;
+  overflow: hidden;
+  vertical-align: middle;
+  margin-right: 2px;
+}
+.mini-bar {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s;
+}
+
+/* ---- Grade scale reference ---- */
+.grade-scale {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+  border-top: 1px solid #F3F4F6;
+  padding-top: 10px;
+}
+.gs-item {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+.gs-aplus { background: #D1FAE5; color: #065F46; }
+.gs-a     { background: #DCFCE7; color: #14532D; }
+.gs-b     { background: #DBEAFE; color: #1D4ED8; }
+.gs-c     { background: #FEF3C7; color: #92400E; }
+.gs-d     { background: #FEE2E2; color: #991B1B; }

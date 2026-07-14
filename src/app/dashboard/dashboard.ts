@@ -8,6 +8,14 @@ interface MetricCard {
   change: string; icon: string; borderColor: string;
 }
 
+/** One arc segment in the live donut chart. */
+interface DonutSlice {
+  color: string;
+  label: string;
+  dasharray: string;   // SVG stroke-dasharray
+  dashoffset: number;  // SVG stroke-dashoffset
+}
+
 @Component({
   selector: 'app-dashboard',
   imports: [DecimalPipe],
@@ -66,6 +74,20 @@ export class DashboardComponent implements OnInit {
   trendPolyGold = signal('');  // co2Saved line
   trendLabels = signal<string[]>([]);
   trendYMax = signal(180);
+
+  // Live donut chart — category breakdown from match data.
+  donutSlices = signal<DonutSlice[]>([]);
+
+  // 10-Day holding success trend — weekly match-rate from trend data.
+  holdingPoly   = signal('');
+  holdingDots   = signal<{ cx: number; cy: number }[]>([]);
+  holdingLabels = signal<string[]>([]);
+
+  // Carbon reduction trend — daily CO₂ series from trend data.
+  co2TrendPoly   = signal('');
+  co2TrendArea   = signal('');
+  co2TrendYMax   = signal(8);
+  co2TrendLabels = signal<string[]>([]);
 
   // Root-cause clusters (Reduce pillar) — populated live from /rootcauseagent/cluster.
   rootCausesLive = signal(false);
@@ -184,7 +206,7 @@ export class DashboardComponent implements OnInit {
     return this.money(v);
   }
 
-  /** Load region bars + revenue locations from live match data. */
+  /** Load region bars + revenue locations + live donut slices from match data. */
   private loadRegions(): void {
     this.api.getMatches().pipe(catchError(() => of(null))).subscribe((res) => {
       const rows = res?.data ?? [];
@@ -195,15 +217,26 @@ export class DashboardComponent implements OnInit {
       };
       const totalsByCity = new Map<string, { count: number; resold: number; revenue: number }>();
 
+      // Category config for donut
+      const catColors: Record<string, string> = {
+        Electronics: '#1a0d06', Apparel: '#F5A623', Home: '#22C55E',
+        Sports: '#6366F1', Books: '#92400E',
+      };
+      const catOrder = ['Electronics', 'Apparel', 'Home', 'Sports', 'Books'];
+      const catCounts = new Map<string, number>();
+
       for (const m of rows) {
         const city = (m.location || '').split(/[ ,]/)[0];
         const mapped = cityMap[city];
-        if (!mapped) continue;
-        const entry = totalsByCity.get(mapped) ?? { count: 0, resold: 0, revenue: 0 };
-        entry.count++;
-        if (m.matchScore >= 60) entry.resold++;
-        entry.revenue += m.costSaved;
-        totalsByCity.set(mapped, entry);
+        if (mapped) {
+          const entry = totalsByCity.get(mapped) ?? { count: 0, resold: 0, revenue: 0 };
+          entry.count++;
+          if (m.matchScore >= 60) entry.resold++;
+          entry.revenue += m.costSaved;
+          totalsByCity.set(mapped, entry);
+        }
+        const cat = catOrder.includes(m.category) ? m.category : 'Other';
+        catCounts.set(cat, (catCounts.get(cat) ?? 0) + 1);
       }
 
       const regionOrder = ['Chennai', 'Bangalore', 'Mumbai', 'Delhi', 'Hyderabad'];
@@ -224,6 +257,25 @@ export class DashboardComponent implements OnInit {
         val: this.money(r.revenue),
         pct: Math.round((r.revenue / maxRev) * 100),
       })));
+
+      // ---- Donut slices ----
+      const total = rows.length || 1;
+      const circ = 2 * Math.PI * 45; // circumference for r=45
+      const activeCats = [...catOrder, 'Other'].filter(c => (catCounts.get(c) ?? 0) > 0);
+      let cumLen = 0;
+      const slices: DonutSlice[] = activeCats.map(cat => {
+        const count = catCounts.get(cat) ?? 0;
+        const len = (count / total) * circ;
+        const s: DonutSlice = {
+          color: catColors[cat] ?? '#9CA3AF',
+          label: cat,
+          dasharray: `${len.toFixed(2)} ${(circ - len).toFixed(2)}`,
+          dashoffset: -cumLen,
+        };
+        cumLen += len;
+        return s;
+      });
+      if (slices.length) this.donutSlices.set(slices);
     });
   }
 
@@ -232,22 +284,57 @@ export class DashboardComponent implements OnInit {
     this.api.getDashboardTrend(30).pipe(catchError(() => of(null))).subscribe((pts) => {
       if (!pts?.length) return;
       this.trendPoints.set(pts);
-      // Show day-of-month labels, spaced to avoid overlap (every ~5th point).
-      const step = Math.max(1, Math.floor(pts.length / 6));
-      this.trendLabels.set(pts.filter((_, i) => i % step === 0 || i === pts.length - 1)
-        .map(p => new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })));
 
+      // Shared x-labels (every ~5th point)
+      const step = Math.max(1, Math.floor(pts.length / 6));
+      const labels = pts
+        .filter((_, i) => i % step === 0 || i === pts.length - 1)
+        .map(p => new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+      this.trendLabels.set(labels);
+
+      // ---- Monthly Savings Trend (costSaved + co2 overlay) ----
       const maxCost = Math.max(...pts.map(p => p.costSaved), 1);
-      const maxCo2 = Math.max(...pts.map(p => p.co2SavedKg), 1);
+      const maxCo2  = Math.max(...pts.map(p => p.co2SavedKg), 1);
       const yMax = Math.ceil(Math.max(maxCost, maxCo2) * 1.15);
       this.trendYMax.set(yMax || 180);
 
       const w = 260, h = 140, pad = 20;
       const xStep = pts.length > 1 ? (w - pad * 2) / (pts.length - 1) : 0;
-
       const toY = (v: number, max: number) => h - (v / max) * h;
       this.trendPolyDark.set(pts.map((p, i) => `${pad + i * xStep},${toY(p.costSaved, yMax)}`).join(' '));
       this.trendPolyGold.set(pts.map((p, i) => `${pad + i * xStep},${toY(p.co2SavedKg, yMax)}`).join(' '));
+
+      // ---- CO₂ Reduction Trend (separate chart, kg scale) ----
+      const co2Peak = Math.max(...pts.map(p => p.co2SavedKg), 1);
+      const co2YMax = Math.ceil(co2Peak * 1.25) || 8;
+      this.co2TrendYMax.set(co2YMax);
+      this.co2TrendLabels.set(labels);
+
+      const cW = 238, cPad = 20, cTop = 12, cBot = 130;
+      const cH = cBot - cTop;
+      const cXStep = pts.length > 1 ? cW / (pts.length - 1) : 0;
+      const toCY = (v: number) => cBot - (v / co2YMax) * cH;
+      const co2Pts = pts.map((p, i) => `${cPad + i * cXStep},${toCY(p.co2SavedKg).toFixed(1)}`).join(' ');
+      this.co2TrendPoly.set(co2Pts);
+      const lastCX = cPad + (pts.length - 1) * cXStep;
+      this.co2TrendArea.set(`${co2Pts} ${lastCX.toFixed(1)},${cBot} ${cPad},${cBot}`);
+
+      // ---- 10-Day Holding Success Trend (weekly match-rate buckets) ----
+      const bucketSize = Math.max(1, Math.ceil(pts.length / 7));
+      const weeks: number[] = [];
+      for (let i = 0; i < pts.length; i += bucketSize) {
+        const slice = pts.slice(i, i + bucketSize);
+        const totalRet   = slice.reduce((s, p) => s + Math.max(p.returns, 1), 0);
+        const totalMatch = slice.reduce((s, p) => s + p.localMatches, 0);
+        weeks.push(Math.min(99, Math.round((totalMatch / totalRet) * 100)));
+      }
+      const wW = 238, wPad = 20, wTop = 12, wBot = 140;
+      const wH = wBot - wTop;
+      const wXStep = weeks.length > 1 ? wW / (weeks.length - 1) : 0;
+      const toHY = (v: number) => wBot - (v / 100) * wH;
+      this.holdingPoly.set(weeks.map((v, i) => `${wPad + i * wXStep},${toHY(v).toFixed(1)}`).join(' '));
+      this.holdingDots.set(weeks.map((v, i) => ({ cx: wPad + i * wXStep, cy: toHY(v) })));
+      this.holdingLabels.set(weeks.map((_, i) => `W${i + 1}`));
     });
   }
 
@@ -259,8 +346,8 @@ export class DashboardComponent implements OnInit {
         const esc = a.escalationRate;
         return {
           name: a.agentName,
-          decisions: a.decisionsMade.toLocaleString(),
-          precision: `${a.precision.toFixed(1)}%`,
+          decisions: a.totalRuns.toLocaleString(),
+          precision: `${a.precisionRate.toFixed(1)}%`,
           escalation: `${esc.toFixed(1)}% escalated`,
           escLow: esc < 6,
           escMid: esc >= 6 && esc < 10,

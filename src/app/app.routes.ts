@@ -9,6 +9,7 @@ import { AiCopilotComponent } from './ai-copilot/ai-copilot';
 import { SustainabilityComponent } from './sustainability/sustainability';
 import { BuyersComponent } from './buyers/buyers';
 import { TrendsComponent } from './trends/trends';
+import { AgentPerformanceComponent } from './agent-performance/agent-performance';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
@@ -22,5 +23,6 @@ export const routes: Routes = [
   { path: 'ai-eligibility', component: AiEligibilityComponent },
   { path: 'ai-copilot', component: AiCopilotComponent },
   { path: 'sustainability', component: SustainabilityComponent },
+  { path: 'agent-performance', component: AgentPerformanceComponent },
   { path: '**', redirectTo: 'dashboard' },
 ];
