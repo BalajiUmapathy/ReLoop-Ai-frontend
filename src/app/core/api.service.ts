@@ -59,6 +59,7 @@ export interface DebugMatch {
   productName: string;
   category: string;
   location: string;
+  subHub?: string;
   condition: string;
   matchScore: number;
   recommendation: string;

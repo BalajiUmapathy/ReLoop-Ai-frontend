@@ -22,6 +22,9 @@ export class ReturnsInventoryComponent implements OnInit {
   // Human-in-the-loop feedback
   feedback = signal<FeedbackSummary | null>(null);
   reviewed = signal<Record<string, 'Accept' | 'Modify' | 'Reject'>>({});
+  /** Row whose quick-actions menu is open, plus where to anchor it. */
+  menuItem = signal<ReturnItem | null>(null);
+  menuPos = signal<{ x: number; y: number }>({ x: 0, y: 0 });
 
   ngOnInit(): void {
     this.svc.hydrateFromBackend();
@@ -36,18 +39,52 @@ export class ReturnsInventoryComponent implements OnInit {
   }
 
   /** Captures an associate Accept / Modify / Reject decision and feeds the learning loop. */
-  sendFeedback(id: string, action: 'Accept' | 'Modify' | 'Reject', product: string) {
+  sendFeedback(id: string, action: 'Accept' | 'Modify' | 'Reject', product: string, notes?: string) {
     this.reviewed.update((m) => ({ ...m, [id]: action }));
     this.api
       .submitFeedback({
         returnRequestId: null,
         action,
-        correctedField: action === 'Modify' ? 'Recommendation' : null,
+        correctedField: action === 'Modify' ? 'Status' : null,
         associateId: 'assoc-console',
-        notes: `${action} on ${product} (${id})`,
+        notes: notes ?? `${action} on ${product} (${id})`,
       })
       .pipe(catchError(() => of(null)))
       .subscribe(() => this.loadFeedback());
+  }
+
+  /** Accept the AI decision as-is. */
+  accept(r: ReturnItem) { this.sendFeedback(r.id, 'Accept', r.product); }
+
+  /** Reject the AI decision — flips the row to the Rejected loss terminal. */
+  reject(r: ReturnItem) {
+    this.svc.overrideStatus(r.id, 'Rejected');
+    this.syncSelected(r.id, 'Rejected');
+    this.sendFeedback(r.id, 'Reject', r.product, `Rejected ${r.product} (${r.id}) — associate override`);
+  }
+
+  /** Toggle the per-row quick-actions menu, anchored under the clicked kebab. */
+  toggleMenu(r: ReturnItem, ev: MouseEvent) {
+    ev.stopPropagation();
+    if (this.menuItem()?.id === r.id) { this.menuItem.set(null); return; }
+    const rect = (ev.currentTarget as HTMLElement).getBoundingClientRect();
+    this.menuPos.set({ x: Math.max(12, rect.right - 232), y: rect.bottom + 6 });
+    this.menuItem.set(r);
+  }
+  closeMenu() { this.menuItem.set(null); }
+
+  /** Apply an associate status override and log it as a Modify signal. */
+  applyModify(r: ReturnItem, status: string) {
+    if (!status || status === r.status) return;
+    this.svc.overrideStatus(r.id, status);
+    this.syncSelected(r.id, status);
+    this.sendFeedback(r.id, 'Modify', r.product, `Status ${r.status} → ${status} on ${r.product} (${r.id})`);
+  }
+
+  /** Keep the open detail drawer in sync after a status override. */
+  private syncSelected(id: string, status: string) {
+    const s = this.selected();
+    if (s && s.id === id) this.selected.set({ ...s, status });
   }
 
   search = signal('');
@@ -55,9 +92,52 @@ export class ReturnsInventoryComponent implements OnInit {
   categoryFilter = signal('All');
   conditionFilter = signal('All');
 
-  statuses = ['All', 'Eligible', 'Matched', 'Pending', 'Sold Locally', 'Returned', 'At Risk', 'Escalated'];
+  statuses = ['All', 'Pending', 'Approved', 'Eligible', 'Matched', 'Diverted', 'ReturnToSeller', 'Rejected'];
+  /** Statuses an associate can override a row to (used by the Modify dropdown). */
+  overrideStatuses = ['Pending', 'Approved', 'Eligible', 'Matched', 'Diverted', 'ReturnToSeller', 'Rejected'];
   categories = ['All', 'Electronics', 'Apparel', 'Home', 'Sports', 'Books'];
   conditions = ['All', 'Excellent', 'Good', 'Fair', 'Poor'];
+
+  /** Canonical return-lifecycle metadata (label, colour, meaning, who sets it, what it counts toward). */
+  statusMeta: Record<string, { label: string; css: string; desc: string; who: string; counts: string }> = {
+    Pending: { label: 'Pending', css: 'st-pending', desc: 'Just submitted, not processed yet.', who: 'Intake (no agent)', counts: 'Total only' },
+    Approved: { label: 'Approved', css: 'st-approved', desc: 'Cleared intake, approved into the resale flow.', who: 'Image Validation passed', counts: 'Eligible' },
+    Eligible: { label: 'Eligible', css: 'st-eligible', desc: 'Photo-validated as resale-worthy, waiting for a local buyer.', who: 'Image Validation Agent', counts: 'Eligible' },
+    Matched: { label: 'Matched', css: 'st-matched', desc: 'Match Agent found a local buyer — resold locally instead of warehousing.', who: 'Match Agent (score ≥ 70)', counts: 'Eligible + Local Matches + Diversion' },
+    Diverted: { label: 'Diverted', css: 'st-diverted', desc: 'Diversion agent rerouted it into a local channel (discount, access point, widened radius).', who: 'Diversion Agent', counts: 'Eligible + Local Matches + Diversion' },
+    ReturnToSeller: { label: 'Return to Seller', css: 'st-return', desc: '10-day clock expired or policy blocked resale — shipped back.', who: 'Holding clock / policy', counts: 'Total only (the loss)' },
+    Rejected: { label: 'Rejected', css: 'st-rejected', desc: 'Failed image validation (damaged) — cannot be resold.', who: 'Image Validation Agent', counts: 'Total only' },
+  };
+
+  statusInfo(s: string) {
+    return this.statusMeta[s] ?? { label: s, css: 'st-pending', desc: '', who: '', counts: '' };
+  }
+
+  /** Builds the horizontal lifecycle stepper shown in the detail drawer. */
+  lifecycle(status: string): { label: string; state: 'done' | 'active' | 'todo' | 'bad' }[] {
+    if (status === 'Rejected') {
+      return [
+        { label: 'Pending', state: 'done' },
+        { label: 'Image Validation', state: 'bad' },
+        { label: 'Rejected', state: 'bad' },
+      ];
+    }
+    if (status === 'ReturnToSeller') {
+      return [
+        { label: 'Pending', state: 'done' },
+        { label: 'Approved', state: 'done' },
+        { label: 'Eligible', state: 'done' },
+        { label: 'Return to Seller', state: 'bad' },
+      ];
+    }
+    const idx: Record<string, number> = { Pending: 0, Approved: 1, Eligible: 2, Matched: 3, Diverted: 3 };
+    const cur = idx[status] ?? 0;
+    const last = status === 'Diverted' ? 'Diverted' : 'Matched';
+    return ['Pending', 'Approved', 'Eligible', last].map((label, i) => ({
+      label,
+      state: i < cur ? 'done' : i === cur ? 'active' : 'todo',
+    }));
+  }
 
   items = computed(() => {
     return this.svc.getReturns()().filter(r => {
@@ -78,11 +158,22 @@ export class ReturnsInventoryComponent implements OnInit {
   }
 
   statusClass(s: string) {
-    return ({ 'Eligible': 'st-eligible', 'Matched': 'st-matched', 'At Risk': 'st-risk', 'Escalated': 'st-escalated', 'Pending': 'st-pending' } as Record<string,string>)[s] ?? 'st-pending';
+    return this.statusInfo(s).css;
+  }
+
+  statusLabel(s: string) {
+    return this.statusInfo(s).label;
   }
 
   conditionClass(c: string) {
-    return ({ 'Excellent': 'cond-excellent', 'Good': 'cond-good', 'Fair': 'cond-fair', 'Poor': 'cond-poor' } as Record<string,string>)[c] ?? '';
+    const k = (c ?? '').toLowerCase().replace(/[^a-z]/g, '');
+    const map: Record<string, string> = {
+      excellent: 'cond-excellent', new: 'cond-excellent', likenew: 'cond-excellent', mint: 'cond-excellent',
+      good: 'cond-good', used: 'cond-good',
+      fair: 'cond-fair', worn: 'cond-fair',
+      poor: 'cond-poor', damaged: 'cond-poor', broken: 'cond-poor', defective: 'cond-poor',
+    };
+    return map[k] ?? 'cond-neutral';
   }
 
   // ---- Dynamic-pricing detail drawer -------------------------------------
@@ -92,7 +183,7 @@ export class ReturnsInventoryComponent implements OnInit {
 
   /** Eligibility verdict shown in the drawer (merged from the old AI Eligibility page). */
   isEligible(r: ReturnItem): boolean {
-    return ['Eligible', 'Matched', 'Sold Locally'].includes(r.status) || r.demandScore >= 60;
+    return ['Approved', 'Eligible', 'Matched', 'Diverted'].includes(r.status) || r.demandScore >= 60;
   }
   eligibilityLabel(r: ReturnItem): string {
     return this.isEligible(r) ? 'Eligible for Local Resale' : 'Manual Review Required';

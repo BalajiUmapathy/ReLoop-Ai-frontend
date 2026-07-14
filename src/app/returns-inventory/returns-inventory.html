@@ -28,22 +28,23 @@
   <!-- Filters -->
   <div class="filters">
     <input class="search-input" [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Search product, return ID..." />
-    <div class="filter-group">
-      <span class="filter-label">Status:</span>
-      @for (s of statuses; track s) {
-        <button class="filter-btn" [class.active]="statusFilter() === s" (click)="statusFilter.set(s)">{{ s }}</button>
-      }
-    </div>
+    <label class="sel-field">
+      <span>Category</span>
+      <select [ngModel]="categoryFilter()" (ngModelChange)="categoryFilter.set($event)">
+        @for (c of categories; track c) { <option [value]="c">{{ c }}</option> }
+      </select>
+    </label>
+    <label class="sel-field">
+      <span>Condition</span>
+      <select [ngModel]="conditionFilter()" (ngModelChange)="conditionFilter.set($event)">
+        @for (c of conditions; track c) { <option [value]="c">{{ c }}</option> }
+      </select>
+    </label>
   </div>
   <div class="filter-row">
-    <span class="filter-label">Category:</span>
-    @for (c of categories; track c) {
-      <button class="filter-btn" [class.active]="categoryFilter() === c" (click)="categoryFilter.set(c)">{{ c }}</button>
-    }
-    &nbsp;&nbsp;
-    <span class="filter-label">Condition:</span>
-    @for (c of conditions; track c) {
-      <button class="filter-btn" [class.active]="conditionFilter() === c" (click)="conditionFilter.set(c)">{{ c }}</button>
+    <span class="filter-label">Status:</span>
+    @for (s of statuses; track s) {
+      <button class="filter-btn" [class.active]="statusFilter() === s" (click)="statusFilter.set(s)">{{ s === 'All' ? 'All' : statusLabel(s) }}</button>
     }
   </div>
 
@@ -53,21 +54,23 @@
       <thead>
         <tr>
           <th>RETURN ID</th><th>PRODUCT</th><th>CATEGORY</th><th>LOCATION</th>
-          <th>HUB</th><th>CONDITION</th><th>RETURN DATE</th><th>HOLD DAYS &#8595;</th>
-          <th>DEMAND SCORE</th><th>RISK SCORE</th><th>AVG MARKDOWN</th>
-          <th>MARGIN RETAINED</th><th>STATUS</th><th>AI REVIEW</th>
+          <th>IMAGE-VALIDATED CONDITION</th><th>HOLD CLOCK &#8595;</th>
+          <th>DEMAND SCORE</th><th>STATUS</th><th class="th-review">REVIEW</th>
         </tr>
       </thead>
       <tbody>
         @for (r of items(); track r.id) {
-          <tr class="inv-row" (click)="openDetail(r)" title="View dynamic-pricing detail">
+          <tr class="inv-row" (click)="openDetail(r)" title="Click for full detail">
             <td class="id-cell">{{ r.id }}</td>
             <td class="product-cell">{{ r.product }}</td>
             <td>{{ r.category }}</td>
-            <td>{{ r.locationHub }}</td>
-            <td>{{ r.subHub }}</td>
+            <td>
+              <div class="loc-cell">
+                <span class="loc-hub">{{ r.locationHub }}</span>
+                @if (r.subHub) { <span class="loc-sub">{{ r.subHub }}</span> }
+              </div>
+            </td>
             <td><span class="cond-badge" [class]="conditionClass(r.condition)">{{ r.condition }}</span></td>
-            <td>{{ r.returnDate }}</td>
             <td><span class="hold-badge" [class]="holdClass(r.holdDays)">Day {{ r.holdDays }}</span></td>
             <td>
               <div class="score-cell">
@@ -75,39 +78,42 @@
                 <span>{{ r.demandScore }}</span>
               </div>
             </td>
-            <td>
-              <div class="score-cell">
-                <div class="mini-bar"><div class="mini-fill red" [style.width.%]="r.riskScore"></div></div>
-                <span>{{ r.riskScore }}</span>
-              </div>
-            </td>
-            <td class="markdown-cell">{{ r.avgMarkdown }}</td>
-            <td class="margin-cell">{{ r.marginRetained }}</td>
-            <td><span class="status-badge" [class]="statusClass(r.status)">{{ r.status }}</span></td>
-            <td class="review-cell">
+            <td><span class="status-badge" [class]="statusClass(r.status)" [title]="statusInfo(r.status).desc">{{ statusLabel(r.status) }}</span></td>
+            <td class="act-cell" (click)="$event.stopPropagation()">
               @if (reviewed()[r.id]; as done) {
-                <span class="review-done"
-                  [class.acc]="done === 'Accept'" [class.mod]="done === 'Modify'" [class.rej]="done === 'Reject'">
-                  &#10003; {{ done }}
-                </span>
-              } @else {
-                <div class="review-actions">
-                  <button class="rv-btn acc" title="Accept AI decision" (click)="sendFeedback(r.id, 'Accept', r.product); $event.stopPropagation()">&#10003;</button>
-                  <button class="rv-btn mod" title="Modify AI decision" (click)="sendFeedback(r.id, 'Modify', r.product); $event.stopPropagation()">&#9998;</button>
-                  <button class="rv-btn rej" title="Reject AI decision" (click)="sendFeedback(r.id, 'Reject', r.product); $event.stopPropagation()">&#10007;</button>
-                </div>
+                <span class="rev-dot" [class.acc]="done === 'Accept'" [class.mod]="done === 'Modify'" [class.rej]="done === 'Reject'" [title]="'Reviewed: ' + done">&#10003;</span>
               }
+              <button class="act-kebab" [class.open]="menuItem()?.id === r.id" (click)="toggleMenu(r, $event)" title="Review actions" aria-label="Review actions">&#8942;</button>
             </td>
           </tr>
         }
         @if (!items().length) {
           <tr>
-            <td class="empty-row" colspan="14">No returns match your filters.</td>
+            <td class="empty-row" colspan="9">No returns match your filters.</td>
           </tr>
         }
       </tbody>
     </table>
   </div>
+
+  <!-- Per-row quick review menu (anchored to the clicked kebab) -->
+  @if (menuItem(); as r) {
+    <div class="act-scrim" (click)="closeMenu()"></div>
+    <div class="act-menu" [style.left.px]="menuPos().x" [style.top.px]="menuPos().y">
+      <div class="am-head">{{ r.id }} &middot; {{ statusLabel(r.status) }}</div>
+      <button class="am-item acc" (click)="accept(r); closeMenu()">&#10003; Accept AI decision</button>
+      <div class="am-divider"></div>
+      <span class="am-label">Change status to</span>
+      <div class="am-statuses">
+        @for (s of overrideStatuses; track s) {
+          <button class="am-status status-badge" [class]="statusClass(s)" [class.cur]="s === r.status"
+            [disabled]="s === r.status" (click)="applyModify(r, s); closeMenu()">{{ statusLabel(s) }}</button>
+        }
+      </div>
+      <div class="am-divider"></div>
+      <button class="am-item rej" (click)="reject(r); closeMenu()">&#10007; Reject &middot; not resaleable</button>
+    </div>
+  }
 </main>
 
 <!-- Dynamic-pricing detail drawer -->
@@ -121,6 +127,29 @@
         <p class="drawer-sub">{{ d.id }} &middot; {{ d.category }} &middot; {{ d.condition }} &middot; {{ d.locationHub }}</p>
       </div>
       <button class="drawer-close" (click)="closeDetail()" aria-label="Close">&times;</button>
+    </div>
+
+    <div class="drawer-body">
+    <div class="dcol">
+    <!-- Lifecycle status flow -->
+    <div class="drawer-flow">
+      <div class="flow-steps">
+        @for (step of lifecycle(d.status); track step.label; let last = $last) {
+          <div class="flow-step" [class]="'fs-' + step.state">
+            <span class="fs-dot"></span>
+            <span class="fs-label">{{ step.label }}</span>
+          </div>
+          @if (!last) { <span class="flow-conn" [class.bad]="step.state === 'bad'"></span> }
+        }
+      </div>
+      <div class="flow-meaning">
+        <span class="status-badge" [class]="statusClass(d.status)">{{ statusLabel(d.status) }}</span>
+        <p class="fm-desc">{{ statusInfo(d.status).desc }}</p>
+        <div class="fm-meta">
+          <span><b>Set by:</b> {{ statusInfo(d.status).who }}</span>
+          <span><b>Counts toward:</b> {{ statusInfo(d.status).counts }}</span>
+        </div>
+      </div>
     </div>
 
     <!-- Price ladder -->
@@ -160,6 +189,8 @@
       </div>
     </div>
 
+    </div>
+    <div class="dcol">
     <!-- Metric grid -->
     <div class="drawer-metrics">
       <div class="dm-cell">
@@ -198,6 +229,9 @@
         <p>{{ d.diversionReasoning }}</p>
       </div>
     }
+
+    </div>
+    </div>
 
     <div class="drawer-foot">
       <span class="df-note">Deterministic Diversion agent · discount = category ceiling × clearance risk × value guard</span>
