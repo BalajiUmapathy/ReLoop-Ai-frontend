@@ -96,8 +96,16 @@ export class ReturnsInventoryComponent implements OnInit {
   statuses = ['All', 'Pending', 'Approved', 'Eligible', 'Matched', 'Diverted', 'ReturnToSeller', 'Rejected'];
   /** Statuses an associate can override a row to (used by the Modify dropdown). */
   overrideStatuses = ['Pending', 'Approved', 'Eligible', 'Matched', 'Diverted', 'ReturnToSeller', 'Rejected'];
-  categories = ['All', 'Electronics', 'Apparel', 'Home', 'Sports', 'Books'];
-  conditions = ['All', 'Excellent', 'Good', 'Fair', 'Poor'];
+
+  /** Category/Condition options are derived from the live data so they always match what's actually there. */
+  categories = computed(() => this.optionsFrom(r => r.category));
+  conditions = computed(() => this.optionsFrom(r => r.condition));
+
+  private optionsFrom(pick: (r: ReturnItem) => string | undefined): string[] {
+    const set = new Set<string>();
+    for (const r of this.svc.getReturns()()) { const v = pick(r); if (v) set.add(v); }
+    return ['All', ...Array.from(set).sort((a, b) => a.localeCompare(b))];
+  }
 
   /** Canonical return-lifecycle metadata (label, colour, meaning, who sets it, what it counts toward). */
   statusMeta: Record<string, { label: string; css: string; desc: string; who: string; counts: string }> = {

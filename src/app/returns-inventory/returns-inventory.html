@@ -26,23 +26,30 @@
   }
 
   <!-- Filters -->
-  <div class="filters">
-    <input class="search-input" [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Search product, return ID..." />
-    <label class="sel-field">
+  <div class="inv-toolbar">
+    <label class="fld fld-search">
+      <span>Search</span>
+      <div class="search-wrap">
+        <input class="search-input" [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Product or return ID…" />
+        @if (search()) { <button type="button" class="search-clear" (click)="search.set('')" aria-label="Clear search">&times;</button> }
+      </div>
+    </label>
+    <label class="fld">
       <span>Category</span>
       <select [ngModel]="categoryFilter()" (ngModelChange)="categoryFilter.set($event)">
-        @for (c of categories; track c) { <option [value]="c">{{ c }}</option> }
+        @for (c of categories(); track c) { <option [value]="c">{{ c }}</option> }
       </select>
     </label>
-    <label class="sel-field">
+    <label class="fld">
       <span>Condition</span>
       <select [ngModel]="conditionFilter()" (ngModelChange)="conditionFilter.set($event)">
-        @for (c of conditions; track c) { <option [value]="c">{{ c }}</option> }
+        @for (c of conditions(); track c) { <option [value]="c">{{ c }}</option> }
       </select>
     </label>
+    <span class="tb-count">{{ items().length }} shown</span>
   </div>
   <div class="filter-row">
-    <span class="filter-label">Status:</span>
+    <span class="filter-label">Status</span>
     @for (s of statuses; track s) {
       <button class="filter-btn" [class.active]="statusFilter() === s" (click)="statusFilter.set(s)">{{ s === 'All' ? 'All' : statusLabel(s) }}</button>
     }
@@ -54,7 +61,7 @@
       <thead>
         <tr>
           <th>RETURN ID</th><th>PRODUCT</th><th>CATEGORY</th><th>LOCATION</th>
-          <th>IMAGE-VALIDATED CONDITION</th><th>HOLD CLOCK &#8595;</th>
+          <th>AI IMAGE-VALIDATED CONDITION</th><th>HOLD CLOCK</th>
           <th>DEMAND SCORE</th><th>STATUS</th><th class="th-review">REVIEW</th>
         </tr>
       </thead>
@@ -153,16 +160,20 @@
     </div>
 
     <!-- Price ladder -->
-    <div class="drawer-price">
-      @if ((d.priceAdjustmentPct ?? 0) < 0) {
-        <span class="dp-base">{{ money(d.basePrice) }}</span>
-        <span class="dp-arrow">&rarr;</span>
-        <span class="dp-final">{{ money(d.suggestedPrice) }}</span>
-        <span class="dp-cut">{{ d.priceAdjustmentPct | number:'1.0-0' }}%</span>
-      } @else {
-        <span class="dp-final">{{ money(d.basePrice) }}</span>
-        <span class="dp-full">full price</span>
-      }
+    <div class="drawer-price-wrap">
+      <span class="dp-eyebrow">AI-RECOMMENDED RESALE PRICE</span>
+      <div class="drawer-price">
+        @if ((d.priceAdjustmentPct ?? 0) < 0) {
+          <span class="dp-base">{{ money(d.basePrice) }}</span>
+          <span class="dp-arrow">&rarr;</span>
+          <span class="dp-final">{{ money(d.suggestedPrice) }}</span>
+          <span class="dp-cut">{{ d.priceAdjustmentPct | number:'1.0-0' }}%</span>
+        } @else {
+          <span class="dp-final">{{ money(d.basePrice) }}</span>
+          <span class="dp-full">full price</span>
+        }
+      </div>
+      <span class="dp-note">Suggested by the pricing agent — not a confirmed sale price.</span>
     </div>
 
     <!-- AI eligibility decision (merged from the former AI Eligibility page) -->

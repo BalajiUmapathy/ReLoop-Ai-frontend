@@ -77,6 +77,39 @@
     </table>
   </div>
 
+  <!-- My Returns (read-only, scoped to this retailer's segment) -->
+  <div class="section-card">
+    <div class="section-header">
+      <div class="section-title">Your Returns — Live AI Decisions</div>
+      <div class="section-sub">Read-only view of your returns. Prices are AI recommendations, not final sale prices.</div>
+    </div>
+    <table class="returns-table">
+      <thead><tr><th>RETURN ID</th><th>PRODUCT</th><th>AI CONDITION</th><th>LOCATION</th><th>HOLD</th><th>DEMAND</th><th>RECOMMENDED PRICE</th><th>STATUS</th></tr></thead>
+      <tbody>
+        @for (r of myReturns(); track r.id) {
+          <tr>
+            <td class="rt-id">{{ r.id }}</td>
+            <td class="rt-product">{{ r.product }}</td>
+            <td><span class="cond-badge" [class]="conditionClass(r.condition)">{{ r.condition }}</span></td>
+            <td>
+              <div class="rt-loc">
+                <span class="rt-hub">{{ r.locationHub }}</span>
+                @if (r.subHub) { <span class="rt-sub">{{ r.subHub }}</span> }
+              </div>
+            </td>
+            <td><span class="hold-badge" [class]="holdClass(r.holdDays)">Day {{ r.holdDays }}</span></td>
+            <td class="rt-demand">{{ r.demandScore }}</td>
+            <td class="rt-price">{{ recommendedPrice(r) }}</td>
+            <td><span class="status-badge" [class]="statusClass(r.status)">{{ statusLabel(r.status) }}</span></td>
+          </tr>
+        }
+        @if (!myReturns().length) {
+          <tr><td class="empty-row" colspan="8">No returns in this segment yet.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
   <!-- Fix Tickets -->
   <div class="section-card">
     <div class="section-header">

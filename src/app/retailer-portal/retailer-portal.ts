@@ -1,6 +1,7 @@
 import { Component, signal, computed, inject, OnInit } from '@angular/core';
 import { catchError, of } from 'rxjs';
 import { ApiService, SegmentAnalytics } from '../core/api.service';
+import { ReturnService, ReturnItem } from '../return';
 
 interface RetailerData {
   name: string;
@@ -28,6 +29,7 @@ interface RetailerData {
 })
 export class RetailerPortalComponent implements OnInit {
   private api = inject(ApiService);
+  private returns = inject(ReturnService);
 
   /** True once real segment analytics have replaced the offline fallback. */
   live = signal(false);
@@ -39,6 +41,8 @@ export class RetailerPortalComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    // Retailers see the same live AI results, scoped to their segment (read-only).
+    this.returns.hydrateFromBackend();
     this.api
       .getSegments()
       .pipe(catchError(() => of([] as SegmentAnalytics[])))
@@ -145,6 +149,54 @@ export class RetailerPortalComponent implements OnInit {
   }
 
   current = computed(() => this.data()[this.activeRetailer()] ?? this.fallback(this.activeRetailer()));
+
+  // ---- Read-only returns list, scoped to the active retailer's segment -----
+  /** Returns belonging to this retailer's category segment (read-only). */
+  myReturns = computed<ReturnItem[]>(() => {
+    const seg = this.activeRetailer();
+    return this.returns.getReturns()().filter((r) => r.category === seg);
+  });
+
+  private statusMeta: Record<string, { label: string; css: string }> = {
+    Pending: { label: 'Pending', css: 'st-pending' },
+    Approved: { label: 'Approved', css: 'st-approved' },
+    Eligible: { label: 'Eligible', css: 'st-eligible' },
+    Matched: { label: 'Matched', css: 'st-matched' },
+    Diverted: { label: 'Diverted', css: 'st-diverted' },
+    ReturnToSeller: { label: 'Return to Seller', css: 'st-return' },
+    Rejected: { label: 'Rejected', css: 'st-rejected' },
+  };
+  statusLabel(s: string): string { return this.statusMeta[s]?.label ?? s; }
+  statusClass(s: string): string { return this.statusMeta[s]?.css ?? 'st-pending'; }
+
+  conditionClass(c: string): string {
+    const k = (c ?? '').toLowerCase().replace(/[^a-z]/g, '');
+    const map: Record<string, string> = {
+      excellent: 'cond-excellent', new: 'cond-excellent', likenew: 'cond-excellent', mint: 'cond-excellent',
+      good: 'cond-good', used: 'cond-good',
+      fair: 'cond-fair', worn: 'cond-fair',
+      poor: 'cond-poor', damaged: 'cond-poor', broken: 'cond-poor', defective: 'cond-poor',
+    };
+    return map[k] ?? 'cond-neutral';
+  }
+
+  holdClass(days: number): string {
+    if (days >= 10) return 'hold-red';
+    if (days >= 6) return 'hold-orange';
+    if (days >= 3) return 'hold-yellow';
+    return 'hold-green';
+  }
+
+  /** AI-recommended resale price for a row ('—' when the pricing agent hasn't priced it). */
+  recommendedPrice(r: ReturnItem): string {
+    return this.money(r.suggestedPrice ?? r.basePrice);
+  }
+  private money(v?: number): string {
+    if (v == null) return '—';
+    if (v >= 100000) return `₹${(v / 100000).toFixed(1)}L`;
+    if (v >= 1000) return `₹${(v / 1000).toFixed(1)}K`;
+    return `₹${Math.round(v)}`;
+  }
 
   xLabels = computed(() => this.current().trendLabels);
 
