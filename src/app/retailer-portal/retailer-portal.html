@@ -60,10 +60,10 @@
   <div class="section-card">
     <div class="section-header">
       <div class="section-title">Your Return Policies</div>
-      <div class="section-sub">Active resale policies governing AI eligibility decisions</div>
+      <div class="section-sub">The resale rules we follow for your products</div>
     </div>
     <table class="policy-table">
-      <thead><tr><th>CATEGORY</th><th>CONDITION FLOOR</th><th>RESALE ALLOWED</th><th>POLICY ID</th></tr></thead>
+      <thead><tr><th>CATEGORY</th><th>MINIMUM CONDITION</th><th>RESALE ALLOWED</th><th>POLICY ID</th></tr></thead>
       <tbody>
         @for (p of current().policies; track p.policyId) {
           <tr>
@@ -113,21 +113,54 @@
   <!-- Fix Tickets -->
   <div class="section-card">
     <div class="section-header">
-      <div class="section-title">Root Cause Fix Tickets</div>
-      <div class="section-sub">AI-identified systemic return causes — act to reduce future volume</div>
+      <div class="section-title">Ways to Reduce Your Returns</div>
+      <div class="section-sub">The main reasons items come back — and what you can do to get fewer of them</div>
     </div>
     <table class="ticket-table">
-      <thead><tr><th>AI IDENTIFIED CAUSE</th><th>SKU GROUP</th><th>SHARE OF RETURNS</th><th>PROJECTED ANNUAL SAVINGS</th><th>STATUS</th><th>ACTION</th></tr></thead>
+      <thead><tr><th>WHY ITEMS COME BACK</th><th>PRODUCT GROUP</th><th>SHARE OF YOUR RETURNS</th><th>SAVINGS / YEAR</th><th>STATUS</th><th>ACTION</th></tr></thead>
       <tbody>
-        @for (t of current().tickets; track t.sku) {
+        @for (t of current().tickets; track $index; let i = $index) {
           <tr>
             <td class="cause-cell">{{ t.cause }}</td>
             <td class="sku-cell">{{ t.sku }}</td>
             <td class="share-cell">{{ t.share }}</td>
             <td class="savings-cell">{{ t.savings }}</td>
-            <td><span class="status-badge" [class]="t.statusClass">{{ t.status }}</span></td>
-            <td><button class="review-btn">Review Ticket</button></td>
+            <td><span class="status-badge" [class]="isAcknowledged(i) ? 'st-done' : t.statusClass">{{ isAcknowledged(i) ? 'Acknowledged' : t.status }}</span></td>
+            <td>
+              @if (isAcknowledged(i)) {
+                <span class="ack-badge">✓ Done</span>
+              } @else {
+                <button class="review-btn" (click)="toggleReview(i)">{{ reviewingTicket() === i ? 'Close' : 'Review Ticket' }}</button>
+              }
+            </td>
           </tr>
+          @if (reviewingTicket() === i) {
+            <tr class="review-panel-row">
+              <td colspan="6">
+                <div class="review-panel">
+                  <div class="rp-header">
+                    <span class="rp-icon">🔍</span>
+                    <div>
+                      <div class="rp-title">What's driving these returns — {{ t.sku }}</div>
+                      <div class="rp-sub">Plain-language breakdown from ReLoop AI</div>
+                    </div>
+                  </div>
+                  <div class="rp-body">
+                    <div class="rp-row"><span class="rp-label">WHY IT'S HAPPENING</span><span class="rp-value">{{ t.cause }}</span></div>
+                    <div class="rp-row"><span class="rp-label">PRODUCT GROUP</span><span class="rp-value">{{ t.sku }}</span></div>
+                    <div class="rp-row"><span class="rp-label">SHARE OF YOUR RETURNS</span><span class="rp-value red">{{ t.share }}</span></div>
+                    <div class="rp-row"><span class="rp-label">MONEY YOU COULD SAVE / YEAR</span><span class="rp-value green">{{ t.savings }}</span></div>
+                    <div class="rp-row"><span class="rp-label">WHAT TO DO</span><span class="rp-value">Fix it at the source — update the product page so it's accurate, flag it to your supplier's quality team, and note the return reason when items come back.</span></div>
+                    <div class="rp-row"><span class="rp-label">STATUS</span><span class="status-badge" [class]="t.statusClass">{{ t.status }}</span></div>
+                  </div>
+                  <div class="rp-actions">
+                    <button class="rp-acknowledge" (click)="acknowledgeTicket(i, t)">✓ Got it &amp; Close</button>
+                    <button class="rp-dismiss" (click)="toggleReview(i)">Dismiss</button>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          }
         }
         @if (!current().tickets.length) {
           <tr><td class="empty-row" colspan="6">No fix tickets yet for this segment.</td></tr>
@@ -161,16 +194,16 @@
       </svg>
     </div>
     <div class="section-card">
-      <div class="section-title" style="margin-bottom:16px">Top Returned SKUs</div>
+      <div class="section-title" style="margin-bottom:16px">Most Returned Products</div>
       <table class="sku-table">
-        <thead><tr><th>PRODUCT</th><th>RETURN REASON</th><th>VOLUME</th><th>RECOMMENDED FIX</th></tr></thead>
+        <thead><tr><th>PRODUCT</th><th>WHY IT'S RETURNED</th><th>HOW MANY</th><th>SUGGESTED FIX</th></tr></thead>
         <tbody>
-          @for (s of current().topSkus; track s.product) {
+          @for (s of current().topSkus; track $index) {
             <tr>
               <td class="sku-product">{{ s.product }}</td>
               <td class="sku-reason">{{ s.reason }}</td>
               <td class="sku-volume">{{ s.volume }}</td>
-              <td><a class="sku-fix">{{ s.fix }}</a></td>
+              <td><a class="sku-fix" (click)="openFixRecommendation(s)">{{ s.fix }}</a></td>
             </tr>
           }
           @if (!current().topSkus.length) {
@@ -180,6 +213,44 @@
       </table>
     </div>
   </div>
+
+  <!-- Fix Recommendation Modal -->
+  @if (fixModalOpen()) {
+    <div class="fix-modal-backdrop" (click)="closeFixModal()">
+      <div class="fix-modal" (click)="$event.stopPropagation()">
+        <div class="fix-modal-header">
+          <div class="fix-modal-icon">🤖</div>
+          <div>
+            <div class="fix-modal-title">How to fix this</div>
+            <div class="fix-modal-sub">A plain-language recommendation from ReLoop AI for {{ fixModalSku()?.product }}</div>
+          </div>
+          <button class="fix-modal-close" (click)="closeFixModal()">&times;</button>
+        </div>
+
+        @if (fixModalSku(); as s) {
+          <div class="fix-modal-meta">
+            <div class="fmm-row"><span class="fmm-label">PRODUCT</span><span class="fmm-val">{{ s.product }}</span></div>
+            <div class="fmm-row"><span class="fmm-label">WHY IT'S COMING BACK</span><span class="fmm-val red">{{ s.reason }}</span></div>
+            <div class="fmm-row"><span class="fmm-label">HOW MANY AFFECTED</span><span class="fmm-val">{{ s.volume }} items</span></div>
+            <div class="fmm-row"><span class="fmm-label">SUGGESTED FIX</span><span class="fmm-val green">{{ s.fix }}</span></div>
+          </div>
+        }
+
+        <div class="fix-modal-body">
+          <div class="fmb-label">WHAT THIS MEANS FOR YOU</div>
+          @if (fixModalLoading()) {
+            <div class="fmb-loading"><span class="fmb-spinner"></span> Getting your recommendation…</div>
+          } @else {
+            <p class="fmb-text">{{ fixModalExplanation() }}</p>
+          }
+        </div>
+
+        <div class="fix-modal-actions">
+          <button class="fma-action" (click)="closeFixModal()">Got it</button>
+        </div>
+      </div>
+    </div>
+  }
 
   <!-- ESG Impact -->
   <div class="esg-card">

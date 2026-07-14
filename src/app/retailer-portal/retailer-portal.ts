@@ -198,6 +198,79 @@ export class RetailerPortalComponent implements OnInit {
     return `₹${Math.round(v)}`;
   }
 
+  // ---- Fix-ticket review + acknowledge -----------------------------------
+  /** Which ticket row is currently expanded for review (null = none). */
+  reviewingTicket = signal<number | null>(null);
+  /** Track acknowledged ticket rows so the button changes state. */
+  acknowledgedTickets = signal<Set<number>>(new Set());
+
+  /** Toggle the review detail panel for a ticket row. */
+  toggleReview(i: number): void {
+    this.reviewingTicket.update(cur => cur === i ? null : i);
+  }
+
+  /** Acknowledge a fix ticket — logs feedback to the backend and marks it done. */
+  acknowledgeTicket(i: number, ticket: { cause: string; sku: string; savings: string }): void {
+    this.api.submitFeedback({
+      returnRequestId: null,
+      action: 'Accept',
+      correctedField: 'FixTicket',
+      originalValue: ticket.cause,
+      correctedValue: `Acknowledged: ${ticket.sku}`,
+      associateId: 'retailer-portal',
+      notes: `Fix ticket acknowledged for ${ticket.sku} — ${ticket.cause} (projected savings: ${ticket.savings})`,
+    }).pipe(catchError(() => of(null))).subscribe();
+
+    this.acknowledgedTickets.update(s => {
+      const next = new Set(s);
+      next.add(i);
+      return next;
+    });
+    this.reviewingTicket.set(null);
+  }
+
+  isAcknowledged(i: number): boolean {
+    return this.acknowledgedTickets().has(i);
+  }
+
+  // ---- Top-SKU "Recommended Fix" explanation modal -----------------------
+  fixModalOpen = signal(false);
+  fixModalLoading = signal(false);
+  fixModalSku = signal<{ product: string; reason: string; volume: number; fix: string } | null>(null);
+  fixModalExplanation = signal('');
+
+  /** Calls the AI Business Explanation endpoint for a detailed fix recommendation. */
+  openFixRecommendation(sku: { product: string; reason: string; volume: number; fix: string }): void {
+    this.fixModalSku.set(sku);
+    this.fixModalOpen.set(true);
+    this.fixModalLoading.set(true);
+    this.fixModalExplanation.set('');
+
+    this.api.explainBusiness({
+      productName: sku.product,
+      category: this.activeRetailer(),
+      demandScore: 80,
+      recommendation: sku.fix,
+      matchScore: sku.volume,
+    }).pipe(catchError(() => of(null))).subscribe((res) => {
+      this.fixModalLoading.set(false);
+      if (res?.explanation) {
+        this.fixModalExplanation.set(res.explanation);
+      } else {
+        this.fixModalExplanation.set(
+          `Recommended fix for "${sku.reason}": ${sku.fix}. ` +
+          `This affects ${sku.volume} items in the ${this.activeRetailer()} segment. ` +
+          `Action: coordinate with supplier QA, update product listing accuracy, ` +
+          `and implement return-reason tagging at the point of receipt to track resolution.`
+        );
+      }
+    });
+  }
+
+  closeFixModal(): void {
+    this.fixModalOpen.set(false);
+  }
+
   xLabels = computed(() => this.current().trendLabels);
 
   chartPath = computed(() => {
