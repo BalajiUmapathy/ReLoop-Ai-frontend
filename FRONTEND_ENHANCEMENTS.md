@@ -61,6 +61,13 @@ table) and the Sustainability ESG badge.
 - `api.service.ts` `DiversionDecision` gained optional `sellProbability` + `clearanceRisk`.
 - Verified live: a Poor-condition book (match 38) lists at **6% off (₹699 → ₹657) within ~15 km**.
 
+### Session update (2026-07-14 pt.2) — Returns Inventory dynamic pricing
+- **Returns Inventory** grid's **AVG MARKDOWN** and **RISK SCORE** columns now come from the real
+  Diversion agent (`GET /api/debug/matches` runs the agent per row) instead of a frontend guess.
+- Rows are **clickable** → a right-side **dynamic-pricing detail drawer** shows base→marked-down
+  price, clearance risk, sell-through, search radius, holding clock and the agent's reasoning.
+- Dashboard hero: removed the **CO₂ value** chip (kept the physical **CO₂ REDUCED** KPI card).
+
 ---
 
 ## 2. Data reality check (what is real vs. synthetic)
