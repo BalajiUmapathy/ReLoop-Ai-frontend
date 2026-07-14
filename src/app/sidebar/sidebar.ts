@@ -51,7 +51,6 @@ export class SidebarComponent {
     { label: 'Return Submission Portal', icon: '📋', route: '/return-submission' },
     { label: 'Returns Inventory', icon: '📦', route: '/returns-inventory' },
     { label: 'Retailer Portal', icon: '🛍️', route: '/retailer-portal' },
-    { label: 'Local Demand Matching', icon: '📍', route: '/local-demand' },
     { label: 'AI Copilot Assistant', icon: '💬', route: '/ai-copilot' },
     { label: 'Sustainability & Impact', icon: '🌱', route: '/sustainability' },
   ];

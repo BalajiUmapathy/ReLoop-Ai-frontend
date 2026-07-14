@@ -190,7 +190,7 @@
           <div class="de-track"><div class="de-fill green" [style.width.%]="d.demandScore"></div></div>
         </div>
         <div class="de-score">
-          <div class="de-score-head"><span>Sell-through</span><span class="de-v">{{ sellPct(d) | number:'1.0-0' }}%</span></div>
+          <div class="de-score-head"><span>Resale likelihood</span><span class="de-v">{{ sellPct(d) | number:'1.0-0' }}%</span></div>
           <div class="de-track"><div class="de-fill dark" [style.width.%]="sellPct(d)"></div></div>
         </div>
         <div class="de-score">
@@ -212,7 +212,7 @@
         <div class="dm-bar"><div class="dm-fill" [class]="'risk-' + riskBand((d.clearanceRisk ?? 0) * 100)" [style.width.%]="(d.clearanceRisk ?? 0) * 100"></div></div>
       </div>
       <div class="dm-cell">
-        <span class="dm-lbl">Sell-through</span>
+        <span class="dm-lbl">Resale likelihood</span>
         <span class="dm-val">{{ (d.sellProbability ?? 0) * 100 | number:'1.0-0' }}%</span>
         <div class="dm-bar"><div class="dm-fill green" [style.width.%]="(d.sellProbability ?? 0) * 100"></div></div>
       </div>
