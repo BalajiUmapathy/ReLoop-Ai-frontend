@@ -1,0 +1,78 @@
+<!-- Compact pill shown in page header — click to expand breakdown panel -->
+<button
+  class="esg-pill"
+  [style.background]="result.bgColor"
+  [style.color]="result.color"
+  [style.borderColor]="result.borderColor"
+  (click)="toggle()"
+  [attr.aria-expanded]="expanded"
+  title="Click to see ESG score breakdown"
+>
+  <span class="esg-leaf">&#127807;</span>
+  <span class="esg-grade">ESG {{ result.grade }}</span>
+  <span class="esg-score-num">{{ result.score | number:'1.0-1' }}</span>
+  <span class="esg-label-text">{{ result.label }}</span>
+  <span class="esg-chevron">{{ expanded ? '▲' : '▼' }}</span>
+</button>
+
+<!-- Expandable breakdown panel -->
+@if (expanded) {
+  <div class="esg-panel" [style.borderColor]="result.borderColor">
+    <div class="esg-panel-header">
+      <div class="esg-panel-grade" [style.color]="result.color">
+        {{ result.grade }}
+        <span class="esg-panel-score">{{ result.score | number:'1.0-1' }} / 100</span>
+      </div>
+      <div class="esg-panel-label" [style.color]="result.color">{{ result.label }}</div>
+    </div>
+
+    <!-- Score gauge bar -->
+    <div class="gauge-track">
+      <div
+        class="gauge-fill"
+        [style.width.%]="result.score"
+        [style.background]="result.borderColor"
+      ></div>
+    </div>
+
+    <!-- Dimension breakdown table -->
+    <table class="breakdown-table">
+      <thead>
+        <tr>
+          <th>DIMENSION</th>
+          <th>RAW VALUE</th>
+          <th>SCORE</th>
+          <th>WEIGHT</th>
+          <th>CONTRIBUTION</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (b of result.breakdown; track b.dimension) {
+          <tr>
+            <td class="dim-label">{{ b.label }}</td>
+            <td class="dim-raw">{{ b.rawValue }}</td>
+            <td>
+              <div class="mini-bar-wrap">
+                <div class="mini-bar" [style.width.%]="b.score" [style.background]="result.borderColor"></div>
+              </div>
+              <span class="dim-score">{{ b.score | number:'1.0-1' }}</span>
+            </td>
+            <td class="dim-weight">{{ b.weight * 100 | number:'1.0-0' }}%</td>
+            <td class="dim-contrib" [style.color]="result.color">
+              +{{ b.contribution | number:'1.0-1' }}
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+
+    <!-- Grade scale reference -->
+    <div class="grade-scale">
+      <span class="gs-item gs-aplus">A+ ≥ 90</span>
+      <span class="gs-item gs-a">A ≥ 80</span>
+      <span class="gs-item gs-b">B ≥ 70</span>
+      <span class="gs-item gs-c">C ≥ 60</span>
+      <span class="gs-item gs-d">D &lt; 60</span>
+    </div>
+  </div>
+}

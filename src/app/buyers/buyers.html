@@ -1,0 +1,142 @@
+<main class="main">
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Local Buyers Directory</h1>
+      <p class="page-sub">AI-matched potential buyers for returned inventory across UPS hubs</p>
+    </div>
+    <span class="live-badge">&#9679; Live from API</span>
+  </div>
+
+  <!-- Hub Filters -->
+  <div class="hub-bar">
+    <span class="hub-bar-label">SELECT HUB</span>
+    <div class="hub-filters">
+      @for (h of hubs; track h) {
+        <button class="hub-btn" [class.active]="activeHub() === h" (click)="selectHub(h)">
+          {{ hubLabels[h] }}
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Stats Row -->
+  <div class="stats-row">
+    <div class="stat-box">
+      <div class="stat-icon">&#128101;</div>
+      <div>
+        <div class="stat-label">Total Buyers</div>
+        <div class="stat-val">{{ totalBuyers() }}</div>
+      </div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-icon">&#127919;</div>
+      <div>
+        <div class="stat-label">Avg Demand Score</div>
+        <div class="stat-val green">{{ avgScore() | number:'1.1-1' }}%</div>
+      </div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-icon">&#128293;</div>
+      <div>
+        <div class="stat-label">High Demand</div>
+        <div class="stat-val amber">{{ highDemandCount() }}</div>
+      </div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-icon">&#128205;</div>
+      <div>
+        <div class="stat-label">Active Hub</div>
+        <div class="stat-val">{{ hubLabels[activeHub()] }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Spinner -->
+  @if (loading()) {
+    <div class="loading-wrap">
+      <div class="spinner"></div>
+      <p class="loading-text">Loading buyers for {{ hubLabels[activeHub()] }}...</p>
+    </div>
+  }
+
+  <!-- Error State -->
+  @if (error()) {
+    <div class="error-card">
+      <span class="error-icon">&#9888;</span>
+      <p>{{ error() }}</p>
+      <button class="retry-btn" (click)="selectHub(activeHub())">Retry</button>
+    </div>
+  }
+
+  <!-- Buyers Table -->
+  @if (!loading() && !error() && paged().length) {
+    <div class="table-card">
+      <div class="table-header">
+        <span class="table-title">Matching Buyers &mdash; {{ hubLabels[activeHub()] }} Hub</span>
+        <button class="sort-btn" (click)="toggleSort()">
+          Score {{ sortAsc() ? '&#9650;' : '&#9660;' }}
+        </button>
+      </div>
+
+      <table class="buyer-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>BUYER NAME</th>
+            <th>ZONE</th>
+            <th>DISTANCE</th>
+            <th>EST. DELIVERY</th>
+            <th>CATEGORY</th>
+            <th>DEMAND SCORE</th>
+            <th>RECOMMENDATION</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (b of paged(); track b.buyerId) {
+            <tr>
+              <td class="id-cell">{{ b.buyerId }}</td>
+              <td class="name-cell">{{ b.buyerName }}</td>
+              <td>{{ b.zone }}</td>
+              <td>{{ b.distanceKm }} km</td>
+              <td>{{ b.estimatedDeliveryHours }}h</td>
+              <td><span class="cat-tag">{{ b.preferredCategory }}</span></td>
+              <td>
+                <div class="score-cell">
+                  <div class="score-bar">
+                    <div class="score-fill" [style.width.%]="b.demandScore" [style.background]="scoreColor(b.demandScore)"></div>
+                  </div>
+                  <strong [style.color]="scoreColor(b.demandScore)">{{ b.demandScore }}</strong>
+                </div>
+              </td>
+              <td>
+                <span class="demand-badge" [class]="badgeClass(b.recommendation)">
+                  {{ b.recommendation }}
+                </span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+
+      <!-- Pagination -->
+      <div class="pagination">
+        <span class="page-info">
+          Page {{ currentPage() }} of {{ totalPages() }} &mdash; {{ totalBuyers() }} buyers
+        </span>
+        <div class="page-btns">
+          <button class="page-btn" [disabled]="currentPage() === 1" (click)="prevPage()">&#8249; Prev</button>
+          <button class="page-btn" [disabled]="currentPage() === totalPages()" (click)="nextPage()">Next &#8250;</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Empty State -->
+  @if (!loading() && !error() && !paged().length) {
+    <div class="empty-card">
+      <span class="empty-icon">&#128230;</span>
+      <p>No buyers found for {{ hubLabels[activeHub()] }} hub.</p>
+    </div>
+  }
+</main>

@@ -348,6 +348,43 @@ export interface BuyerDto {
   score: number;
 }
 
+// ---- Hub buyers directory (Buyers page) ----
+export interface HubBuyerDto {
+  buyerId: string;
+  buyerName: string;
+  hub: string;
+  zone: string;
+  distanceKm: number;
+  estimatedDeliveryHours: number;
+  demandScore: number;
+  preferredCategory: string;
+  recommendation: string;
+}
+export interface BuyerListResponse {
+  hub: string;
+  buyers: HubBuyerDto[];
+}
+
+// ---- Dashboard trend (Trends page) ----
+export interface DashboardTrendPoint {
+  date: string;
+  returns: number;
+  localMatches: number;
+  costSaved: number;
+  distanceSavedKm: number;
+  co2SavedKg: number;
+}
+
+// ---- Agent telemetry (Agent Performance page) ----
+export interface AgentTelemetry {
+  agentName: string;
+  totalRuns: number;
+  successfulRuns: number;
+  precisionRate: number;
+  escalationRate: number;
+  averageResponseTime: number;
+}
+
 /**
  * Single gateway to the UPS ReLoop Nexus API.
  * Every method unwraps the ApiResponse envelope and returns the payload,
@@ -419,5 +456,14 @@ export class ApiService {
   }
   getLocations(): Observable<LocationAnalytics[]> {
     return this.unwrap(this.http.get<ApiResponse<LocationAnalytics[]>>(`${this.base}/dashboard/locations`));
+  }
+  getHubBuyers(hub: string): Observable<BuyerListResponse> {
+    return this.unwrap(this.http.get<ApiResponse<BuyerListResponse>>(`${this.base}/buyers?hub=${encodeURIComponent(hub)}`));
+  }
+  getDashboardTrend(days = 30): Observable<DashboardTrendPoint[]> {
+    return this.unwrap(this.http.get<ApiResponse<DashboardTrendPoint[]>>(`${this.base}/dashboard/trend?days=${days}`));
+  }
+  getAgentTelemetry(): Observable<AgentTelemetry[]> {
+    return this.unwrap(this.http.get<ApiResponse<AgentTelemetry[]>>(`${this.base}/dashboard/agent-telemetry`));
   }
 }
