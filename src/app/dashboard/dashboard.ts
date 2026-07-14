@@ -105,7 +105,6 @@ export class DashboardComponent implements OnInit {
       { label: 'Freight avoided', value: this.money(m.costSaved) },
       { label: 'Resale margin', value: this.money(m.resaleMargin ?? 0) },
       { label: 'Service fee', value: this.money(m.resaleServiceFee ?? 0) },
-      { label: 'CO₂ value', value: this.money(m.co2Value ?? 0) },
       { label: 'AI cost', value: `−${this.money(m.aiCost ?? 0)}` },
     ]);
 
