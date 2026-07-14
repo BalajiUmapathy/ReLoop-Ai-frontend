@@ -53,6 +53,14 @@ files are done — teammate should NOT re-edit them (avoids merge conflicts):**
 **Remaining frontend work (teammate, per 3a):** dashboard charts (region bars, trend line, agents
 table) and the Sustainability ESG badge.
 
+### Session update (2026-07-14) — Return Submission dynamic pricing
+- **Browser tab title** fixed `FigmaWebsite` → **ReLoop AI** (`index.html`).
+- **Return Submission** pipeline card now shows a **DYNAMIC PRICING** strip: base → marked-down
+  price, discount %, search radius, sell-through probability, clearance risk, and a plain-English
+  reason — all from the enhanced Diversion agent (`POST /api/integration/process-return`).
+- `api.service.ts` `DiversionDecision` gained optional `sellProbability` + `clearanceRisk`.
+- Verified live: a Poor-condition book (match 38) lists at **6% off (₹699 → ₹657) within ~15 km**.
+
 ---
 
 ## 2. Data reality check (what is real vs. synthetic)
