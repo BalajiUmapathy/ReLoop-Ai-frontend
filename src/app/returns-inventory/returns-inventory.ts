@@ -4,6 +4,7 @@ import { DecimalPipe } from '@angular/common';
 import { catchError, of } from 'rxjs';
 import { ReturnService } from '../return';
 import { ApiService, FeedbackSummary } from '../core/api.service';
+import { ReturnItem } from '../return';
 
 @Component({
   selector: 'app-returns-inventory',
@@ -82,6 +83,26 @@ export class ReturnsInventoryComponent implements OnInit {
 
   conditionClass(c: string) {
     return ({ 'Excellent': 'cond-excellent', 'Good': 'cond-good', 'Fair': 'cond-fair', 'Poor': 'cond-poor' } as Record<string,string>)[c] ?? '';
+  }
+
+  // ---- Dynamic-pricing detail drawer -------------------------------------
+  selected = signal<ReturnItem | null>(null);
+  openDetail(r: ReturnItem) { this.selected.set(r); }
+  closeDetail() { this.selected.set(null); }
+
+  /** Compact INR formatter for the pricing drawer (₹1.2K / ₹8.4K style). */
+  money(v?: number): string {
+    if (v == null) return '—';
+    if (v >= 100000) return `₹${(v / 100000).toFixed(1)}L`;
+    if (v >= 1000) return `₹${(v / 1000).toFixed(1)}K`;
+    return `₹${Math.round(v)}`;
+  }
+
+  /** Colour band for the clearance-risk meter. */
+  riskBand(pct: number): 'low' | 'mid' | 'high' {
+    if (pct >= 60) return 'high';
+    if (pct >= 30) return 'mid';
+    return 'low';
   }
 
   /** Exports the currently filtered rows to a CSV file the browser downloads. */

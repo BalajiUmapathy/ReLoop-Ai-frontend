@@ -18,6 +18,16 @@ export interface ReturnItem {
   avgMarkdown: string;
   marginRetained: string;
   status: string;
+  // Diversion / dynamic-pricing agent output (present on live rows).
+  diversionAction?: string;
+  basePrice?: number;
+  suggestedPrice?: number;
+  priceAdjustmentPct?: number;
+  searchRadiusKm?: number;
+  clearanceRisk?: number;
+  sellProbability?: number;
+  daysRemaining?: number;
+  diversionReasoning?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -78,8 +88,18 @@ export class ReturnService {
   }
 
   private fromMatch(m: DebugMatch, i: number, inv?: DebugInventory): ReturnItem {
-    const holdDays = inv?.holdingDays ?? (i % 10) + 1;
-    const risk = Math.max(4, Math.round(100 - m.confidence * 100));
+    const holdDays = m.holdingDay ?? inv?.holdingDays ?? (i % 10) + 1;
+    // Prefer the real diversion agent's dead-stock risk; fall back to the
+    // inverse of match confidence only when the agent output is absent.
+    const risk = m.clearanceRisk != null
+      ? Math.round(m.clearanceRisk * 100)
+      : Math.max(4, Math.round(100 - m.confidence * 100));
+    // Real markdown from the dynamic-pricing agent (returned as a negative cut);
+    // '—' means full price.
+    const cut = m.priceAdjustmentPct != null ? Math.abs(Math.round(m.priceAdjustmentPct)) : null;
+    const markdown = cut != null
+      ? (cut > 0 ? `${cut}%` : '—')
+      : (m.matchScore >= 80 ? '—' : `${Math.round((100 - m.matchScore) * 0.25)}%`);
     return {
       id: `RET-${m.returnRequestId.slice(0, 8).toUpperCase()}`,
       product: m.productName || m.productId,
@@ -93,18 +113,28 @@ export class ReturnService {
       holdDays,
       demandScore: Math.round(m.matchScore),
       riskScore: risk,
-      avgMarkdown: m.matchScore >= 80 ? '—' : `${Math.round((100 - m.matchScore) * 0.25)}%`,
+      avgMarkdown: markdown,
       marginRetained: `${Math.round(m.matchScore)}%`,
-      status: this.mapStatus(m.recommendation, m.matchScore, holdDays),
+      status: this.mapStatus(m.diversionAction || m.recommendation, m.matchScore, holdDays),
+      diversionAction: m.diversionAction,
+      basePrice: m.basePrice,
+      suggestedPrice: m.suggestedPrice,
+      priceAdjustmentPct: m.priceAdjustmentPct,
+      searchRadiusKm: m.searchRadiusKm,
+      clearanceRisk: m.clearanceRisk,
+      sellProbability: m.sellProbability,
+      daysRemaining: m.daysRemaining,
+      diversionReasoning: m.diversionReasoning,
     };
   }
 
   private mapStatus(recommendation: string, score: number, holdDays: number): string {
     const r = (recommendation || '').toUpperCase();
-    if (holdDays >= 10) return 'Escalated';
+    if (holdDays >= 10 || r.includes('RETURN_TO_SELLER') || r.includes('ESCALATE')) return 'Escalated';
     if (r.includes('SELL_LOCAL') || score >= 80) return 'Matched';
-    if (r.includes('REDISTRIBUTE') || score >= 60) return 'Eligible';
-    if (r.includes('DISCOUNT') || score >= 40) return 'At Risk';
+    if (r.includes('DISCOUNT') || r.includes('ACCESS_POINT')) return 'At Risk';
+    if (r.includes('WIDEN_RADIUS') || r.includes('HOLD') || r.includes('REDISTRIBUTE') || score >= 60) return 'Eligible';
+    if (score >= 40) return 'At Risk';
     if (r.includes('LIQUIDATE') || r.includes('WAREHOUSE')) return 'Escalated';
     return 'Pending';
   }

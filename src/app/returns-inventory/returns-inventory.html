@@ -60,7 +60,7 @@
       </thead>
       <tbody>
         @for (r of items(); track r.id) {
-          <tr>
+          <tr class="inv-row" (click)="openDetail(r)" title="View dynamic-pricing detail">
             <td class="id-cell">{{ r.id }}</td>
             <td class="product-cell">{{ r.product }}</td>
             <td>{{ r.category }}</td>
@@ -92,9 +92,9 @@
                 </span>
               } @else {
                 <div class="review-actions">
-                  <button class="rv-btn acc" title="Accept AI decision" (click)="sendFeedback(r.id, 'Accept', r.product)">&#10003;</button>
-                  <button class="rv-btn mod" title="Modify AI decision" (click)="sendFeedback(r.id, 'Modify', r.product)">&#9998;</button>
-                  <button class="rv-btn rej" title="Reject AI decision" (click)="sendFeedback(r.id, 'Reject', r.product)">&#10007;</button>
+                  <button class="rv-btn acc" title="Accept AI decision" (click)="sendFeedback(r.id, 'Accept', r.product); $event.stopPropagation()">&#10003;</button>
+                  <button class="rv-btn mod" title="Modify AI decision" (click)="sendFeedback(r.id, 'Modify', r.product); $event.stopPropagation()">&#9998;</button>
+                  <button class="rv-btn rej" title="Reject AI decision" (click)="sendFeedback(r.id, 'Reject', r.product); $event.stopPropagation()">&#10007;</button>
                 </div>
               }
             </td>
@@ -109,3 +109,74 @@
     </table>
   </div>
 </main>
+
+<!-- Dynamic-pricing detail drawer -->
+@if (selected(); as d) {
+  <div class="drawer-scrim" (click)="closeDetail()"></div>
+  <aside class="drawer" role="dialog" aria-label="Dynamic pricing detail">
+    <div class="drawer-head">
+      <div>
+        <span class="drawer-eyebrow">DYNAMIC PRICING · {{ (d.diversionAction || 'HOLD').replace('_', ' ') }}</span>
+        <h2 class="drawer-title">{{ d.product }}</h2>
+        <p class="drawer-sub">{{ d.id }} &middot; {{ d.category }} &middot; {{ d.condition }} &middot; {{ d.locationHub }}</p>
+      </div>
+      <button class="drawer-close" (click)="closeDetail()" aria-label="Close">&times;</button>
+    </div>
+
+    <!-- Price ladder -->
+    <div class="drawer-price">
+      @if ((d.priceAdjustmentPct ?? 0) < 0) {
+        <span class="dp-base">{{ money(d.basePrice) }}</span>
+        <span class="dp-arrow">&rarr;</span>
+        <span class="dp-final">{{ money(d.suggestedPrice) }}</span>
+        <span class="dp-cut">{{ d.priceAdjustmentPct | number:'1.0-0' }}%</span>
+      } @else {
+        <span class="dp-final">{{ money(d.basePrice) }}</span>
+        <span class="dp-full">full price</span>
+      }
+    </div>
+
+    <!-- Metric grid -->
+    <div class="drawer-metrics">
+      <div class="dm-cell">
+        <span class="dm-lbl">Clearance risk</span>
+        <span class="dm-val" [class]="'risk-' + riskBand((d.clearanceRisk ?? 0) * 100)">
+          {{ (d.clearanceRisk ?? 0) * 100 | number:'1.0-0' }}%
+        </span>
+        <div class="dm-bar"><div class="dm-fill" [class]="'risk-' + riskBand((d.clearanceRisk ?? 0) * 100)" [style.width.%]="(d.clearanceRisk ?? 0) * 100"></div></div>
+      </div>
+      <div class="dm-cell">
+        <span class="dm-lbl">Sell-through</span>
+        <span class="dm-val">{{ (d.sellProbability ?? 0) * 100 | number:'1.0-0' }}%</span>
+        <div class="dm-bar"><div class="dm-fill green" [style.width.%]="(d.sellProbability ?? 0) * 100"></div></div>
+      </div>
+      <div class="dm-cell">
+        <span class="dm-lbl">Search radius</span>
+        <span class="dm-val">{{ d.searchRadiusKm | number:'1.0-1' }} km</span>
+      </div>
+      <div class="dm-cell">
+        <span class="dm-lbl">Holding clock</span>
+        <span class="dm-val">Day {{ d.holdDays }} <em>· {{ d.daysRemaining ?? (10 - d.holdDays) }}d left</em></span>
+      </div>
+      <div class="dm-cell">
+        <span class="dm-lbl">Local demand</span>
+        <span class="dm-val">{{ d.demandScore }}/100</span>
+      </div>
+      <div class="dm-cell">
+        <span class="dm-lbl">Margin retained</span>
+        <span class="dm-val">{{ d.marginRetained }}</span>
+      </div>
+    </div>
+
+    @if (d.diversionReasoning) {
+      <div class="drawer-reason">
+        <span class="dr-lbl">Agent reasoning</span>
+        <p>{{ d.diversionReasoning }}</p>
+      </div>
+    }
+
+    <div class="drawer-foot">
+      <span class="df-note">Deterministic Diversion agent · discount = category ceiling × clearance risk × value guard</span>
+    </div>
+  </aside>
+}

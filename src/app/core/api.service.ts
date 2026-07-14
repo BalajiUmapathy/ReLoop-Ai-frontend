@@ -67,6 +67,17 @@ export interface DebugMatch {
   costSaved: number;
   co2Saved: number;
   createdAt: string;
+  // Diversion / dynamic-pricing agent output (per-row), added by /api/debug/matches.
+  holdingDay?: number;
+  daysRemaining?: number;
+  diversionAction?: string;
+  basePrice?: number;
+  suggestedPrice?: number;
+  priceAdjustmentPct?: number;
+  searchRadiusKm?: number;
+  clearanceRisk?: number;
+  sellProbability?: number;
+  diversionReasoning?: string;
 }
 export interface DebugInventory {
   id: string;
