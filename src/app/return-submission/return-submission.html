@@ -226,6 +226,33 @@
               }
             </div>
 
+            <!-- Dynamic pricing & diversion (risk-weighted) -->
+            @if (p.diversion; as d) {
+              <div class="pl-pricing">
+                <div class="plp-head">DYNAMIC PRICING · {{ d.action.replace('_', ' ') }}</div>
+                <div class="plp-price">
+                  <span class="plp-base">₹{{ d.basePrice | number:'1.0-0' }}</span>
+                  <span class="plp-arrow">→</span>
+                  <span class="plp-final">₹{{ d.suggestedPrice | number:'1.0-0' }}</span>
+                  @if (d.priceAdjustmentPct) {
+                    <span class="plp-cut">{{ d.priceAdjustmentPct | number:'1.0-0' }}%</span>
+                  } @else {
+                    <span class="plp-full">full price</span>
+                  }
+                </div>
+                <div class="plp-metrics">
+                  <div><span>Search radius</span><strong>{{ d.searchRadiusKm | number:'1.0-0' }} km</strong></div>
+                  @if (d.sellProbability != null) {
+                    <div><span>Sell-through</span><strong>{{ pct(d.sellProbability) }}%</strong></div>
+                  }
+                  @if (d.clearanceRisk != null) {
+                    <div><span>Clearance risk</span><strong>{{ pct(d.clearanceRisk) }}%</strong></div>
+                  }
+                </div>
+                <p class="plp-reason">{{ d.reasoning }}</p>
+              </div>
+            }
+
             <!-- Revenue -->
             @if (p.revenueOpportunity; as rev) {
               <div class="pl-revenue">

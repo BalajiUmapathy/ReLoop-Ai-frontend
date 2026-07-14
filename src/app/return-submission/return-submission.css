@@ -126,3 +126,17 @@ select.field-input { cursor: pointer; }
 .plc-ref { font-size: 10.5px; font-weight: 700; color: #374151; }
 .plc-snip { font-size: 11px; color: #6B7280; line-height: 1.4; }
 
+.pl-pricing { background: #fff; border: 1px solid #E9D5FF; border-radius: 10px; padding: 12px; margin-bottom: 12px; }
+.plp-head { font-size: 10px; font-weight: 800; color: #6D28D9; letter-spacing: .05em; margin-bottom: 8px; }
+.plp-price { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.plp-base { font-size: 14px; font-weight: 600; color: #9CA3AF; text-decoration: line-through; }
+.plp-arrow { color: #9CA3AF; font-weight: 700; }
+.plp-final { font-size: 20px; font-weight: 800; color: #111827; }
+.plp-cut { font-size: 11px; font-weight: 800; color: #B91C1C; background: #FEE2E2; padding: 2px 8px; border-radius: 999px; }
+.plp-full { font-size: 11px; font-weight: 800; color: #15803D; background: #DCFCE7; padding: 2px 8px; border-radius: 999px; }
+.plp-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
+.plp-metrics div { background: #FAF9FF; border: 1px solid #F1F0F6; border-radius: 8px; padding: 7px 8px; text-align: center; }
+.plp-metrics span { display: block; font-size: 10px; color: #9CA3AF; margin-bottom: 2px; }
+.plp-metrics strong { font-size: 13px; font-weight: 800; color: #111827; }
+.plp-reason { font-size: 11px; line-height: 1.5; color: #4B5563; margin: 0; }
+

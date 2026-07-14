@@ -176,6 +176,8 @@ export interface DiversionDecision {
   searchRadiusKm: number;
   escalated: boolean;
   reasoning: string;
+  sellProbability?: number;
+  clearanceRisk?: number;
 }
 export interface DecisionConfidence {
   score: number;
