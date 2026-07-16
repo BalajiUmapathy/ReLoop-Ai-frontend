@@ -17,7 +17,7 @@
 
       <div class="field-group">
         <label class="field-label">PRODUCT NAME <span class="req">*</span></label>
-        <input class="field-input" [ngModel]="product()" (ngModelChange)="product.set($event)" placeholder="e.g. Wireless Earbuds (Pro)" />
+        <input class="field-input" [ngModel]="product()" (ngModelChange)="onProductChange($event)" placeholder="e.g. Wireless Earbuds (Pro)" />
       </div>
 
       <div class="field-row">
@@ -38,13 +38,15 @@
       <div class="field-row">
         <div class="field-group">
           <label class="field-label">LOCATION HUB</label>
-          <select class="field-input" [ngModel]="locationHub()" (ngModelChange)="locationHub.set($event)">
+          <select class="field-input" [ngModel]="locationHub()" (ngModelChange)="onHubChange($event)">
             @for (h of hubs; track h) { <option>{{ h }}</option> }
           </select>
         </div>
         <div class="field-group">
           <label class="field-label">SUB HUB</label>
-          <input class="field-input" [ngModel]="subHub()" (ngModelChange)="subHub.set($event)" [placeholder]="locationHub() + ' Central'" />
+          <select class="field-input" [ngModel]="subHub()" (ngModelChange)="subHub.set($event)">
+            @for (s of subHubs(); track s) { <option>{{ s }}</option> }
+          </select>
         </div>
       </div>
 
@@ -59,11 +61,33 @@
         </div>
       </div>
 
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label">RETURN REASON</label>
+          <select class="field-input" [ngModel]="returnReason()" (ngModelChange)="returnReason.set($event)">
+            @for (r of reasons; track r) { <option>{{ r }}</option> }
+          </select>
+        </div>
+        <div class="field-group">
+          <label class="field-label">PRODUCT PRICE ($)</label>
+          <input class="field-input" type="number" min="0" [ngModel]="priceInput()" (ngModelChange)="priceInput.set($event ? +$event : null)" placeholder="e.g. 108" />
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field-group">
+          <label class="field-label">QUANTITY <span class="req">*</span></label>
+          <input class="field-input" type="number" min="1" max="999" [ngModel]="quantity()" (ngModelChange)="quantity.set(+$event || 1)" placeholder="1" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">ORDER / SKU REFERENCE</label>
+          <input class="field-input" [ngModel]="orderRef()" (ngModelChange)="orderRef.set($event)" placeholder="e.g. ORD-2024-1138" />
+        </div>
+      </div>
+
       <div class="field-group">
-        <label class="field-label">RETURN REASON</label>
-        <select class="field-input" [ngModel]="returnReason()" (ngModelChange)="returnReason.set($event)">
-          @for (r of reasons; track r) { <option>{{ r }}</option> }
-        </select>
+        <label class="field-label">ADDITIONAL NOTES <span class="auto-tag">(OPTIONAL)</span></label>
+        <textarea class="field-input field-textarea" rows="2" [ngModel]="notes()" (ngModelChange)="notes.set($event)" placeholder="Any details about packaging, accessories, visible defects…"></textarea>
       </div>
 
       <div class="field-group">
@@ -79,9 +103,38 @@
       </div>
 
       <div class="form-actions">
-        <button class="btn-submit" (click)="onSubmit()" [disabled]="!product() || !pickupDate() || !retailer()">Submit Return</button>
+        <button class="btn-submit"
+          [class.btn-confirm]="confirmReady()"
+          [class.btn-analyzing]="pipelineRunning()"
+          (click)="handleSubmit()"
+          [disabled]="!product() || !pickupDate() || !retailer() || pipelineRunning()">
+          @if (pipelineRunning()) {
+            ⏳ Running AI Analysis…
+          } @else if (confirmReady()) {
+            ✅ Confirm &amp; Submit Return
+          } @else {
+            🧠 Analyze &amp; Submit
+          }
+        </button>
         <button class="btn-draft">Save Draft</button>
       </div>
+      @if (confirmReady() && !pipelineRunning()) {
+        <div class="submit-hint">
+          @if (pipeline(); as p) {
+            @if (p.autoApproval; as a) {
+              <span class="sh-route"
+                [class.approve]="a.route === 'AUTO_APPROVE'"
+                [class.review]="a.route === 'HUMAN_REVIEW'"
+                [class.escalate]="a.route === 'ESCALATE'">
+                &#9632; AI Verdict: {{ a.route.replace('_', ' ') }}
+              </span>
+              <span class="sh-msg">Review the result in the panel, then confirm above.</span>
+            }
+          } @else {
+            <span class="sh-msg">AI offline &mdash; click again to submit anyway.</span>
+          }
+        </div>
+      }
     </div>
 
     <!-- AI Preview Panel -->
@@ -94,7 +147,13 @@
         </div>
       </div>
 
-      @if (hasData()) {
+      @if (aiThinking()) {
+        <div class="ai-thinking">
+          <span>&#9881;</span> Analyzing product eligibility…
+        </div>
+      }
+
+      @if (showEstimate()) {
         <div class="eligibility-badge" [class.eligible]="eligible()" [class.ineligible]="!eligible()">
           <span>{{ eligible() ? '&#10003;' : '&#8855;' }}</span>
           <div>
@@ -125,7 +184,7 @@
         </div>
 
         <button class="btn-live-match" (click)="runLiveMatch()" [disabled]="analyzing()">
-          {{ analyzing() ? '⏳ Running AI Match Agent…' : '🤖 Run Live AI Match Agent' }}
+          {{ analyzing() ? '⏳ Matching with local buyers…' : '🔍 Find Nearby Buyer Match' }}
         </button>
 
         @if (liveError()) {
@@ -145,7 +204,7 @@
               <div class="lm"><span class="lm-label">Confidence</span><span class="lm-val">{{ pct(r.confidence) }}%</span></div>
               <div class="lm"><span class="lm-label">Channel</span><span class="lm-val">{{ r.channel || '—' }}</span></div>
               <div class="lm"><span class="lm-label">Days to Sell</span><span class="lm-val">{{ r.expectedDaysToSell }}d</span></div>
-              <div class="lm"><span class="lm-label">Cost Saved</span><span class="lm-val">₹{{ r.costSaved | number:'1.0-0' }}</span></div>
+              <div class="lm"><span class="lm-label">Cost Saved</span><span class="lm-val">{{ usd(r.costSaved) }}</span></div>
               <div class="lm"><span class="lm-label">Distance Saved</span><span class="lm-val">{{ r.distanceSavedKm | number:'1.0-0' }} km</span></div>
               <div class="lm"><span class="lm-label">CO₂ Saved</span><span class="lm-val">{{ r.co2Saved | number:'1.1-1' }} kg</span></div>
             </div>
@@ -166,7 +225,7 @@
         }
 
         <button class="btn-pipeline" (click)="runFullPipeline()" [disabled]="pipelineRunning() || !product()">
-          {{ pipelineRunning() ? '⏳ Running full AI pipeline…' : '⚡ Run Full AI Decision Pipeline' }}
+          {{ pipelineRunning() ? '⏳ Evaluating return (7 AI agents)…' : '🧠 Get Full Return Verdict' }}
         </button>
         @if (packageTracking()) {
           <div class="pipeline-link">Linked to live package <strong>{{ packageTracking() }}</strong></div>
@@ -229,14 +288,16 @@
             <!-- Dynamic pricing & diversion (risk-weighted) -->
             @if (p.diversion; as d) {
               <div class="pl-pricing">
-                <div class="plp-head">DYNAMIC PRICING · {{ d.action.replace('_', ' ') }}</div>
+                <div class="plp-head">DYNAMIC PRICING &middot; {{ d.action.replace('_', ' ') }}</div>
+                <div class="plp-note-ai">Price from retailer entry or auto-estimated by category &middot; freight = &#8377;180/item standard reverse logistics &middot; values shown in USD</div>
                 <div class="plp-price">
-                  <span class="plp-base">₹{{ d.basePrice | number:'1.0-0' }}</span>
-                  <span class="plp-arrow">→</span>
-                  <span class="plp-final">₹{{ d.suggestedPrice | number:'1.0-0' }}</span>
                   @if (d.priceAdjustmentPct) {
+                    <span class="plp-base">{{ usd(d.basePrice) }}</span>
+                    <span class="plp-arrow">&rarr;</span>
+                    <span class="plp-final">{{ usd(d.suggestedPrice) }}</span>
                     <span class="plp-cut">{{ d.priceAdjustmentPct | number:'1.0-0' }}%</span>
                   } @else {
+                    <span class="plp-final">{{ usd(d.basePrice) }}</span>
                     <span class="plp-full">full price</span>
                   }
                 </div>
@@ -257,12 +318,12 @@
             @if (p.revenueOpportunity; as rev) {
               <div class="pl-revenue">
                 <div class="plr-title">NET VALUE CAPTURED</div>
-                <div class="plr-total">₹{{ rev.totalNetValue | number:'1.0-0' }}</div>
+                <div class="plr-total">{{ usd(rev.totalNetValue) }}</div>
                 <div class="plr-grid">
-                  <div><span>Freight avoided</span><strong>₹{{ rev.freightAvoided | number:'1.0-0' }}</strong></div>
-                  <div><span>Resale margin</span><strong>₹{{ rev.resaleMargin | number:'1.0-0' }}</strong></div>
-                  <div><span>Service fee</span><strong>₹{{ rev.resaleServiceFee | number:'1.0-0' }}</strong></div>
-                  <div><span>CO₂ value</span><strong>₹{{ rev.co2ValueInr | number:'1.0-0' }}</strong></div>
+                  <div><span>Freight avoided</span><strong>{{ usd(rev.freightAvoided) }}</strong></div>
+                  <div><span>Resale margin</span><strong>{{ usd(rev.resaleMargin) }}</strong></div>
+                  <div><span>Service fee</span><strong>{{ usd(rev.resaleServiceFee) }}</strong></div>
+                  <div><span>CO&#x2082; value</span><strong>{{ usd(rev.co2ValueInr) }}</strong></div>
                 </div>
               </div>
             }
@@ -271,7 +332,7 @@
             <div class="pl-savings">
               <div class="pls-item"><span>{{ p.savings.distanceSavedKm | number:'1.0-0' }} km</span><small>distance saved</small></div>
               <div class="pls-item"><span>{{ p.savings.co2SavedKg | number:'1.1-1' }} kg</span><small>CO₂ saved</small></div>
-              <div class="pls-item"><span>₹{{ p.savings.costSaved | number:'1.0-0' }}</span><small>cost saved</small></div>
+              <div class="pls-item"><span>{{ usd(p.savings.costSaved) }}</span><small>cost saved</small></div>
             </div>
 
             <!-- Auto-approval reason -->
@@ -294,10 +355,10 @@
             }
           </div>
         }
-      } @else {
+      } @else if (!aiThinking()) {
         <div class="ai-placeholder">
-          <p>&#128269; <strong>Dynamic AI Explanation</strong></p>
-          <p>Enter product details to generate AI analysis.</p>
+          <p>&#128269; <strong>AI-Powered Eligibility</strong></p>
+          <p>Type at least 3 characters of a product name to see instant AI analysis.</p>
         </div>
       }
     </div>

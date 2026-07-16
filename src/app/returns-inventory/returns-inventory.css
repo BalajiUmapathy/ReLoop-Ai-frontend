@@ -93,8 +93,10 @@
 .rev-dot.acc { background: #16A34A; }
 .rev-dot.mod { background: #D97706; }
 .rev-dot.rej { background: #DC2626; }
+.rev-label { font-size: 10.5px; font-weight: 600; color: #374151; margin-left: 4px; vertical-align: middle; }
+.rev-pending { font-size: 10.5px; font-weight: 600; color: #9CA3AF; background: #F3F4F6; padding: 3px 8px; border-radius: 4px; margin-right: 4px; }
 .th-review { text-align: right; }
-.act-cell { text-align: right; white-space: nowrap; }
+.act-cell { display: flex; align-items: center; justify-content: flex-end; gap: 6px; white-space: nowrap; }
 .act-kebab { width: 28px; height: 28px; margin-left: 6px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: #9CA3AF; font-size: 17px; line-height: 1; cursor: pointer; transition: all .15s; }
 .act-kebab:hover, .act-kebab.open { background: #F3F4F6; border-color: #E5E7EB; color: #374151; }
 .act-scrim { position: fixed; inset: 0; z-index: 50; }

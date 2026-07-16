@@ -48,7 +48,7 @@ const BENCHMARKS = {
   co2SavedKg: 10_000,
   /** 200 000 km distance saved = 100 pts */
   distanceSavedKm: 200_000,
-  /** ₹ 2 000 000 cost saved = 100 pts */
+  /** $ 2 000 000 cost saved = 100 pts */
   costSaved: 2_000_000,
 } as const;
 
@@ -199,9 +199,9 @@ export class EsgScoreService {
   // ---- Private formatting helpers ----
 
   private formatMoney(v: number): string {
-    if (v >= 1_000_000) return `₹${(v / 1_000_000).toFixed(1)} M`;
-    if (v >= 1_000) return `₹${(v / 1_000).toFixed(0)} K`;
-    return `₹${Math.round(v)}`;
+    if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)} M`;
+    if (v >= 1_000) return `$${(v / 1_000).toFixed(0)} K`;
+    return `$${Math.round(v)}`;
   }
 
   private formatCo2(kg: number): string {

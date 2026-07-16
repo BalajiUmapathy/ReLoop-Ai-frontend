@@ -20,10 +20,10 @@ export class SustainabilityComponent implements OnInit {
   live = signal(false);
 
   finCards = signal<Card[]>([
-    { icon: '💰', label: 'REVENUE RECOVERED', value: '₹1.2M', desc: 'From local resale operations', color: '#22C55E', valClass: 'green' },
-    { icon: '🚚', label: 'COST AVOIDANCE', value: '₹487K', desc: 'Reverse logistics savings', color: '#F5A623', valClass: 'amber' },
-    { icon: '📈', label: 'PROFIT IMPROVEMENT', value: '₹725K', desc: 'Net operational impact', color: '#1a0d06', valClass: 'dark' },
-    { icon: '🎯', label: 'PROJECTED ANNUAL BENEFIT', value: '₹8.5M', desc: 'Based on current trajectory', color: '#6366F1', valClass: 'blue' },
+    { icon: '💰', label: 'REVENUE RECOVERED', value: '$1.2M', desc: 'From local resale operations', color: '#22C55E', valClass: 'green' },
+    { icon: '🚚', label: 'COST AVOIDANCE', value: '$487K', desc: 'Reverse logistics savings', color: '#F5A623', valClass: 'amber' },
+    { icon: '📈', label: 'PROFIT IMPROVEMENT', value: '$725K', desc: 'Net operational impact', color: '#1a0d06', valClass: 'dark' },
+    { icon: '🎯', label: 'PROJECTED ANNUAL BENEFIT', value: '$8.5M', desc: 'Based on current trajectory', color: '#6366F1', valClass: 'blue' },
   ]);
 
   envCards = signal<Card[]>([
@@ -47,7 +47,7 @@ export class SustainabilityComponent implements OnInit {
     {
       title: 'Cost Savings Trend', icon: '💰', color: '#22C55E', fillId: 'susFillSavings',
       getValue: (p) => p.costSaved,
-      format: (v) => v >= 1000 ? `₹${(v / 1000).toFixed(1)}K` : `₹${Math.round(v)}`, unit: '₹',
+      format: (v) => v >= 1_000_000 ? `$${(v / 1_000_000).toFixed(1)}M` : v >= 1000 ? `$${(v / 1000).toFixed(0)}K` : `$${Math.round(v)}`, unit: '$',
     },
     {
       title: 'Returns vs Local Matches', icon: '🔗', color: '#6366F1', fillId: 'susFillDiversion',
@@ -165,8 +165,8 @@ export class SustainabilityComponent implements OnInit {
   }
 
   private money(v: number): string {
-    if (v >= 1_000_000) return `₹${(v / 1_000_000).toFixed(1)}M`;
-    if (v >= 1_000) return `₹${(v / 1_000).toFixed(0)}K`;
-    return `₹${Math.round(v)}`;
+    if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
+    if (v >= 1_000) return `$${(v / 1_000).toFixed(0)}K`;
+    return `$${Math.round(v)}`;
   }
 }

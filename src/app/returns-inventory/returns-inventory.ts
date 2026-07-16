@@ -222,12 +222,12 @@ export class ReturnsInventoryComponent implements OnInit {
     return (r.sellProbability ?? r.demandScore / 100) * 100;
   }
 
-  /** Compact INR formatter for the pricing drawer (₹1.2K / ₹8.4K style). */
+  /** Compact USD formatter for the pricing drawer ($1.2K / $8.4K style). */
   money(v?: number): string {
     if (v == null) return '—';
-    if (v >= 100000) return `₹${(v / 100000).toFixed(1)}L`;
-    if (v >= 1000) return `₹${(v / 1000).toFixed(1)}K`;
-    return `₹${Math.round(v)}`;
+    if (v >= 1000000) return `$${(v / 1000000).toFixed(1)}M`;
+    if (v >= 1000) return `$${(v / 1000).toFixed(1)}K`;
+    return `$${Math.round(v)}`;
   }
 
   /** Colour band for the clearance-risk meter. */

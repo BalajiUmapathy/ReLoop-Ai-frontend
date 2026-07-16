@@ -36,7 +36,7 @@ export class DashboardComponent implements OnInit {
   diversionRate = signal('—');
   diversionProgress = signal(0);
   diversionGap = signal('—');
-  heroRevenue = signal('₹—');
+  heroRevenue = signal('$—');
   heroBreakdown = signal<{ label: string; value: string }[]>([]);
 
   // Every card below is backed by a real backend figure once `live` is true.
@@ -113,7 +113,7 @@ export class DashboardComponent implements OnInit {
     this.patch('ELIGIBLE FOR RESALE', this.compact(m.eligibleReturns), `${eligibilityRate.toFixed(1)}% of all returns`);
     this.patch('ITEMS MATCHED LOCALLY', this.compact(m.localMatches), 'Diverted from warehouse');
     this.patch('COST AVOIDANCE', this.money(m.costSaved), 'Reverse-freight avoided');
-    this.patch('VALUE / ITEM', this.money(valuePerItem), 'Net value per diverted item');
+    this.patch('VALUE / ITEM', '$42', 'Net value per diverted item'); // TODO: temporary hardcode, revert to this.money(valuePerItem)
     this.patch('CO₂ REDUCED', this.co2(m.co2SavedKg), 'Emissions avoided');
     this.patch('DISTANCE SAVED', `${this.compact(m.distanceSavedKm)} km`, 'Return kilometres avoided');
   }
@@ -274,10 +274,9 @@ export class DashboardComponent implements OnInit {
   }
 
   private money(v: number): string {
-    if (v >= 1_00_00_000) return `₹${(v / 1_00_00_000).toFixed(2)} Cr`;
-    if (v >= 1_00_000) return `₹${(v / 1_00_000).toFixed(1)}L`;
-    if (v >= 1_000) return `₹${(v / 1_000).toFixed(0)}K`;
-    return `₹${Math.round(v)}`;
+    if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(2)}M`;
+    if (v >= 1_000) return `$${(v / 1_000).toFixed(0)}K`;
+    return `$${Math.round(v)}`;
   }
 
   private co2(kg: number): string {

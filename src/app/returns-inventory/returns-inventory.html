@@ -89,6 +89,9 @@
             <td class="act-cell" (click)="$event.stopPropagation()">
               @if (reviewed()[r.id]; as done) {
                 <span class="rev-dot" [class.acc]="done === 'Accept'" [class.mod]="done === 'Modify'" [class.rej]="done === 'Reject'" [title]="'Reviewed: ' + done">&#10003;</span>
+                <span class="rev-label">{{ done }}</span>
+              } @else {
+                <span class="rev-pending">Pending</span>
               }
               <button class="act-kebab" [class.open]="menuItem()?.id === r.id" (click)="toggleMenu(r, $event)" title="Review actions" aria-label="Review actions">&#8942;</button>
             </td>

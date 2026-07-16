@@ -109,7 +109,7 @@ export class RetailerPortalComponent implements OnInit {
     return {
       name: segment, icon: this.iconFor(segment),
       tagline: `AI-powered local resale · ${segment}`,
-      totalReturns: 0, itemsResold: 0, revenueRecovered: '₹0', returnRate: '0%',
+      totalReturns: 0, itemsResold: 0, revenueRecovered: '$0', returnRate: '0%',
       co2Reduced: '0 kg', milesSaved: '0 km',
       policies: [{ category: segment, condition: 'Good', conditionClass: 'cond-good', policyId: 'RP-000-0.0' }],
       tickets: [], trendData: [0], trendLabels: ['—'], topSkus: [],
@@ -118,9 +118,9 @@ export class RetailerPortalComponent implements OnInit {
   }
 
   private inr(v: number): string {
-    if (v >= 1_00_000) return `₹${(v / 1_00_000).toFixed(1)}L`;
-    if (v >= 1_000) return `₹${(v / 1_000).toFixed(0)}K`;
-    return `₹${Math.round(v).toLocaleString('en-IN')}`;
+    if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
+    if (v >= 1_000) return `$${(v / 1_000).toFixed(0)}K`;
+    return `$${Math.round(v).toLocaleString('en-US')}`;
   }
 
   private iconFor(segment: string): string {
@@ -193,9 +193,9 @@ export class RetailerPortalComponent implements OnInit {
   }
   private money(v?: number): string {
     if (v == null) return '—';
-    if (v >= 100000) return `₹${(v / 100000).toFixed(1)}L`;
-    if (v >= 1000) return `₹${(v / 1000).toFixed(1)}K`;
-    return `₹${Math.round(v)}`;
+    if (v >= 1000000) return `$${(v / 1000000).toFixed(1)}M`;
+    if (v >= 1000) return `$${(v / 1000).toFixed(1)}K`;
+    return `$${Math.round(v)}`;
   }
 
   // ---- Fix-ticket review + acknowledge -----------------------------------
